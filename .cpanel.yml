@@ -1,21 +1,34 @@
 ---
 deployment:
   tasks:
-    # Navigate to deployment directory
+    # Set deployment path
     - export DEPLOYPATH=/home/vayunexs/inv-api.vayunexsolution.com
     
-    # Copy all files to deployment directory
-    - /bin/cp -R * $DEPLOYPATH/
+    # Create deployment directory if not exists
+    - mkdir -p $DEPLOYPATH
     
-    # Copy hidden files (like .env.example)
-    - /bin/cp -R .env.example $DEPLOYPATH/ 2>/dev/null || true
-    - /bin/cp -R .gitignore $DEPLOYPATH/ 2>/dev/null || true
+    # Copy all project files
+    - /bin/cp -R src $DEPLOYPATH/
+    - /bin/cp -R database $DEPLOYPATH/
+    - /bin/cp -R scripts $DEPLOYPATH/
+    - /bin/cp index.js $DEPLOYPATH/
+    - /bin/cp package.json $DEPLOYPATH/
+    - /bin/cp package-lock.json $DEPLOYPATH/
+    - /bin/cp .env.example $DEPLOYPATH/ 2>/dev/null || true
     
     # Navigate to deployment directory
     - cd $DEPLOYPATH
     
-    # Install/update dependencies
-    - /bin/npm install --production
+    # Install production dependencies only
+    - /bin/npm install --production --silent
     
-    # Restart the application (using PM2 if available)
-    - /bin/pm2 restart vayunex-inventory-api 2>/dev/null || /bin/pm2 start index.js --name vayunex-inventory-api 2>/dev/null || true
+    # Create logs directory
+    - mkdir -p logs
+    
+    # Restart Node.js application
+    # Method 1: Using PM2 (if available)
+    - /bin/pm2 delete vayunex-inventory-api 2>/dev/null || true
+    - /bin/pm2 start index.js --name vayunex-inventory-api --env production 2>/dev/null || true
+    
+    # Method 2: Touch restart.txt for Passenger (cPanel default)
+    - touch $DEPLOYPATH/tmp/restart.txt 2>/dev/null || mkdir -p $DEPLOYPATH/tmp && touch $DEPLOYPATH/tmp/restart.txt
