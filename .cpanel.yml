@@ -1,0 +1,21 @@
+---
+deployment:
+  tasks:
+    # Navigate to deployment directory
+    - export DEPLOYPATH=/home/vayunexs/inv-api.vayunexsolution.com
+    
+    # Copy all files to deployment directory
+    - /bin/cp -R * $DEPLOYPATH/
+    
+    # Copy hidden files (like .env.example)
+    - /bin/cp -R .env.example $DEPLOYPATH/ 2>/dev/null || true
+    - /bin/cp -R .gitignore $DEPLOYPATH/ 2>/dev/null || true
+    
+    # Navigate to deployment directory
+    - cd $DEPLOYPATH
+    
+    # Install/update dependencies
+    - /bin/npm install --production
+    
+    # Restart the application (using PM2 if available)
+    - /bin/pm2 restart vayunex-inventory-api 2>/dev/null || /bin/pm2 start index.js --name vayunex-inventory-api 2>/dev/null || true
