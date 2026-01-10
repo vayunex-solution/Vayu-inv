@@ -1,0 +1,36 @@
+{
+  "name": "vaynex-inventory-api",
+  "version": "1.0.0",
+  "description": "Enterprise-grade REST API platform with layered architecture",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test:connection": "node scripts/test-connection.js"
+  },
+  "keywords": [
+    "api",
+    "rest",
+    "enterprise",
+    "nodejs",
+    "mysql"
+  ],
+  "author": "Vaynex",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "swagger-ui-express": "^5.0.0",
+    "swagger-jsdoc": "^6.2.8",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "winston": "^3.11.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
