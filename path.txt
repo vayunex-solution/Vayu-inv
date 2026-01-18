@@ -1,0 +1,20 @@
+Requiring winston...
+node : Error 
+requiring winston: D:
+\projects\vanus_Inv\n
+ode_modules\@so-ric\c
+olorspace\dist\index.
+cjs.js:1976
+At line:1 char:1
++ node 
+test_winston.js > 
+error_full.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (Error r   
+ equiring...dex.c    
+js.js:1976:Strin    
+g) [], RemoteExc    

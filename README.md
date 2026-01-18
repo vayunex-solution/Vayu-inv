@@ -15,8 +15,8 @@ npm run dev
 ## Demo Credentials
 
 ```
-Email: admin@vaynex.com
-Password: admin123
+Email: admin@yahoo.com
+Password: admin@123
 ```
 
 ## API Documentation

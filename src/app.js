@@ -95,6 +95,9 @@ const registerRoutes = () => {
     const itemRoutes = require('./projects/inventory/routes/item.routes');
     app.use('/api/v1/inventory', itemRoutes);
 
+    const countryRoutes = require('./projects/inventory/routes/country.routes');
+    app.use('/api/v1/inventory/countries', countryRoutes);
+
     logger.info('Routes registered successfully');
 };
 

@@ -30,7 +30,7 @@ FROM information_schema.ROUTINES
 WHERE ROUTINE_SCHEMA = 'vayunexs_inventory_db';
 
 -- Test: Get demo user
-CALL sp_get_user_by_email('{"email": "admin@vaynex.com"}');
+CALL sp_get_user_by_email('{"email": "admin@yahoo.com"}');
 
 -- Test: Get categories
 CALL sp_get_item_categories('{}');
