@@ -237,6 +237,10 @@ const swaggerDefinition = {
         {
             name: 'Items',
             description: 'Inventory item management'
+        },
+        {
+            name: 'Countries',
+            description: 'Country management'
         }
     ]
 };
@@ -249,7 +253,8 @@ const options = {
     // Path to the API specs
     apis: [
         './src/projects/**/routes/*.js',
-        './src/projects/**/swagger/*.js'
+        './src/projects/**/swagger/*.js',
+        './src/projects/**/controllers/*.js'
     ]
 };
 
