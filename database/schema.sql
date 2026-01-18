@@ -141,7 +141,7 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
 -- Insert default admin user (password: admin123)
 -- Password hash generated with bcrypt (10 rounds)
 INSERT INTO `users` (`email`, `password`, `username`, `role`) VALUES
-('admin@vaynex.com', '$2a$10$rQnM1F3K.L8V4pY9qR5Z8e7B6D1C3A5E2F4G6H8I0J2K4L6M8N0P', 'Admin User', 'admin')
+('', '$2a$10$rQnM1F3K.L8V4pY9qR5Z8e7B6D1C3A5E2F4G6H8I0J2K4L6M8N0P', 'Admin User', 'admin')
 ON DUPLICATE KEY UPDATE `email` = `email`;
 
 -- Insert default units

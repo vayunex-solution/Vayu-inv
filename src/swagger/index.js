@@ -138,12 +138,12 @@ const swaggerDefinition = {
                     email: {
                         type: 'string',
                         format: 'email',
-                        example: 'admin@vaynex.com'
+                        example: 'admin@yahoo.com'
                     },
                     password: {
                         type: 'string',
                         format: 'password',
-                        example: 'password123'
+                        example: 'admin@123'
                     }
                 }
             },

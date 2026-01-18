@@ -153,7 +153,7 @@ const handleDemoLogin = async (email, password) => {
     // Demo credentials
     const demoUser = {
         id: 1,
-        email: 'admin@vaynex.com',
+        email: 'admin@yahoo.com',
         password: 'admin123',
         name: 'Admin User',
         role: 'admin'
@@ -227,7 +227,7 @@ const getUserById = async (userId) => {
         // Demo fallback
         return {
             id: userId,
-            email: 'admin@vaynex.com',
+            email: 'admin@yahoo.com',
             name: 'Admin User',
             role: 'admin'
         };
