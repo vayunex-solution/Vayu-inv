@@ -1,8 +1,0 @@
-Cannot find module 'node:process'
-Require stack:
-- D:\projects\vanus_Inv\node_modules\pg-connection-string\index.js
-- D:\projects\vanus_Inv\node_modules\sequelize\lib\sequelize.js
-- D:\projects\vanus_Inv\node_modules\sequelize\lib\index.js
-- D:\projects\vanus_Inv\src\config\db.config.js
-- D:\projects\vanus_Inv\src\projects\inventory\services\country.service.js
-- D:\projects\vanus_Inv\verify_setup.js

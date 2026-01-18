@@ -1,7 +1,8 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../../../config/db.config');
+const sequelize = require('../../../../config/db.config');
 
-// Sequelize Model for Reads
+// Sequelize Model for Reads (Unchanged for now, used for getAll/getById if direct SQL SELECT is preferred, 
+// OR can be used if SP returns dataset that matches this structure)
 const Country = sequelize.define("Country", {
     serial: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     countryId: { field: 'country_id', type: DataTypes.INTEGER, unique: true, allowNull: false },
@@ -18,7 +19,7 @@ const Country = sequelize.define("Country", {
     timestamps: false
 });
 
-// Domain Model / DTO for SP logic
+// Domain Model / DTO for JSON SP interaction
 class CountryModel {
     constructor(data) {
         this.countryId = data.countryId || 0;
@@ -29,15 +30,20 @@ class CountryModel {
         this.modifyBy = data.modifyBy || 0;
     }
 
-    // Map to Stored Procedure Parameters
-    toSpParams(actionType) {
+    /**
+     * Converts the model instance to a JSON object specifically formatted 
+     * for the usp_country_insupd stored procedure.
+     * Keys must match exactly what the SP expects in JSON_EXTRACT.
+     */
+    toJsonForSp() {
         return {
             Country_Id: parseInt(this.countryId, 10),
             Country_Name: this.countryName,
             Country_Code: this.countryCode,
+            // SP expects IsStatus (or defaults to 1). Explicitly passing boolean or int 1/0 is fine for JSON.
             IsStatus: this.isStatus !== undefined ? (this.isStatus ? 1 : 0) : 1,
-            CreatedBy: actionType === 1 ? this.createdBy : 0,
-            ModifyBy: actionType !== 1 ? this.modifyBy : 0
+            CreatedBy: this.createdBy,
+            ModifyBy: this.modifyBy
         };
     }
 }
