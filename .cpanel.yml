@@ -1,34 +1,17 @@
 ---
 deployment:
   tasks:
-    # Set deployment path
-    - export DEPLOYPATH=/home/vayunexs/inv-api.vayunexsolution.com
+    # ============================================
+    # BACKEND DEPLOYMENT
+    # ============================================
+    - /bin/cp -Rf src/. /home/vayunexs/inv-api.vayunexsolution.com/src/
+    - /bin/cp -Rf database/. /home/vayunexs/inv-api.vayunexsolution.com/database/
+    - /bin/cp -Rf scripts/. /home/vayunexs/inv-api.vayunexsolution.com/scripts/
+    - /bin/cp -f index.js /home/vayunexs/inv-api.vayunexsolution.com/
+    - /bin/cp -f package.json /home/vayunexs/inv-api.vayunexsolution.com/
+    - /bin/cp -f package-lock.json /home/vayunexs/inv-api.vayunexsolution.com/
     
-    # Create deployment directory if not exists
-    - mkdir -p $DEPLOYPATH
-    
-    # Copy all project files
-    - /bin/cp -R src $DEPLOYPATH/
-    - /bin/cp -R database $DEPLOYPATH/
-    - /bin/cp -R scripts $DEPLOYPATH/
-    - /bin/cp index.js $DEPLOYPATH/
-    - /bin/cp package.json $DEPLOYPATH/
-    - /bin/cp package-lock.json $DEPLOYPATH/
-    - /bin/cp .env.example $DEPLOYPATH/ 2>/dev/null || true
-    
-    # Navigate to deployment directory
-    - cd $DEPLOYPATH
-    
-    # Install production dependencies only
-    - /bin/npm install --production --silent
-    
-    # Create logs directory
-    - mkdir -p logs
-    
-    # Restart Node.js application
-    # Method 1: Using PM2 (if available)
-    - /bin/pm2 delete vayunex-inventory-api 2>/dev/null || true
-    - /bin/pm2 start index.js --name vayunex-inventory-api --env production 2>/dev/null || true
-    
-    # Method 2: Touch restart.txt for Passenger (cPanel default)
-    - touch $DEPLOYPATH/tmp/restart.txt 2>/dev/null || mkdir -p $DEPLOYPATH/tmp && touch $DEPLOYPATH/tmp/restart.txt
+    # ============================================
+    # FRONTEND DEPLOYMENT (Build folder only)
+    # ============================================
+    - /bin/cp -Rf vayunex-ui/dist/. /home/vayunexs/inventory.vayunexsolution.com/

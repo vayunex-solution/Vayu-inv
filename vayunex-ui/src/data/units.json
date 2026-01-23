@@ -1,0 +1,44 @@
+[
+    {
+        "id": 1,
+        "code": "PCS",
+        "name": "Pieces",
+        "description": "Individual pieces"
+    },
+    {
+        "id": 2,
+        "code": "KG",
+        "name": "Kilograms",
+        "description": "Weight in kilograms"
+    },
+    {
+        "id": 3,
+        "code": "LTR",
+        "name": "Liters",
+        "description": "Volume in liters"
+    },
+    {
+        "id": 4,
+        "code": "MTR",
+        "name": "Meters",
+        "description": "Length in meters"
+    },
+    {
+        "id": 5,
+        "code": "BOX",
+        "name": "Box",
+        "description": "Box/Carton"
+    },
+    {
+        "id": 6,
+        "code": "SET",
+        "name": "Set",
+        "description": "Complete set"
+    },
+    {
+        "id": 7,
+        "code": "PKT",
+        "name": "Packet",
+        "description": "Packet/Pack"
+    }
+]

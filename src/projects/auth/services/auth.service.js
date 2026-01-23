@@ -303,6 +303,16 @@ const register = async (userData) => {
 
         const user = result.data[0] || { id: Date.now(), email, name, role };
 
+        // Send welcome email (non-blocking)
+        try {
+            const { sendWelcomeEmail } = require('../../services/email/email.service');
+            await sendWelcomeEmail({ email, username: name });
+            logger.info('Welcome email sent', { email });
+        } catch (emailError) {
+            logger.error('Welcome email failed:', emailError.message);
+            // Don't fail registration if email fails
+        }
+
         // Generate tokens for auto-login
         const tokens = generateTokenPair({
             id: user.id,
@@ -350,6 +360,15 @@ const handleDirectRegister = async (email, passwordHash, name, role) => {
         );
 
         const userId = result.insertId;
+
+        // Send welcome email (non-blocking)
+        try {
+            const { sendWelcomeEmail } = require('../../services/email/email.service');
+            await sendWelcomeEmail({ email, username: name });
+            logger.info('Welcome email sent', { email });
+        } catch (emailError) {
+            logger.error('Welcome email failed:', emailError.message);
+        }
 
         const tokens = generateTokenPair({
             id: userId,

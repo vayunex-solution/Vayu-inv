@@ -1,0 +1,7 @@
+[
+  { "id": 1, "name": "General", "description": "General items", "parent_id": null, "is_active": true },
+  { "id": 2, "name": "Electronics", "description": "Electronic items", "parent_id": null, "is_active": true },
+  { "id": 3, "name": "Consumables", "description": "Consumable items", "parent_id": null, "is_active": true },
+  { "id": 4, "name": "Raw Materials", "description": "Raw materials for production", "parent_id": null, "is_active": true },
+  { "id": 5, "name": "Finished Goods", "description": "Ready for sale items", "parent_id": null, "is_active": true }
+]

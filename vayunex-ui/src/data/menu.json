@@ -1,0 +1,38 @@
+[
+  {
+    "id": "dashboard",
+    "title": "Dashboard",
+    "icon": "LayoutDashboard",
+    "url": "/dashboard",
+    "children": []
+  },
+  {
+    "id": "inventory",
+    "title": "Inventory",
+    "icon": "Package",
+    "url": null,
+    "children": [
+      { "id": "items", "title": "Items", "icon": "Box", "url": "/inventory/items" },
+      { "id": "categories", "title": "Categories", "icon": "Tags", "url": "/inventory/categories" },
+      { "id": "units", "title": "Units", "icon": "Ruler", "url": "/inventory/units" },
+      { "id": "stock", "title": "Stock Transactions", "icon": "ArrowLeftRight", "url": "/inventory/stock" }
+    ]
+  },
+  {
+    "id": "reports",
+    "title": "Reports",
+    "icon": "FileText",
+    "url": null,
+    "children": [
+      { "id": "stock-report", "title": "Stock Report", "icon": "ClipboardList", "url": "/reports/stock" },
+      { "id": "low-stock", "title": "Low Stock Alert", "icon": "AlertTriangle", "url": "/reports/low-stock" }
+    ]
+  },
+  {
+    "id": "settings",
+    "title": "Settings",
+    "icon": "Settings",
+    "url": "/settings",
+    "children": []
+  }
+]
