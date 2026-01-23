@@ -23,7 +23,7 @@ app.use(helmet({
  * CORS Configuration
  */
 app.use(cors({
-    origin: '*', // Configure as needed for production
+    origin: process.env.CORS_ORIGIN || '*', // Configurable via environment variable
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
