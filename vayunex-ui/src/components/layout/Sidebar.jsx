@@ -1,5 +1,4 @@
-// src/components/layout/Sidebar.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Nav, Collapse } from 'react-bootstrap';
 import {
   LayoutDashboard, Package, Tags, Ruler, ArrowLeftRight,
@@ -8,7 +7,7 @@ import {
 } from 'lucide-react';
 import { companyConfig } from '../../config/company';
 import { useTabStore, apiClient } from '../../lib';
-import { useEffect, useState } from 'react';
+
 
 const iconMap = {
   LayoutDashboard, Package, Tags, Ruler, ArrowLeftRight,
