@@ -26,12 +26,12 @@ const swaggerDefinition = {
     },
     servers: [
         {
-            url: 'https://inv-api.vayunexsolution.com',
-            description: 'Production server'
+            url: `http://localhost:${config.server.port}`,
+            description: 'Development server (Local)'
         },
         {
-            url: `http://localhost:${config.server.port}`,
-            description: 'Development server'
+            url: 'https://inv-api.vayunexsolution.com',
+            description: 'Production server'
         }
     ],
     components: {

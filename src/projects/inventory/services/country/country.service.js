@@ -61,7 +61,12 @@ class CountryService extends CountryInterface {
 
         // SP returns a single row with a 'response' column containing JSON string
         if (result && result.data && result.data.length > 0 && result.data[0].response) {
-            return JSON.parse(result.data[0].response);
+            const parsed = JSON.parse(result.data[0].response);
+            // Check if data field is null (country not found)
+            if (!parsed.data) {
+                return { success: false, message: "Country not found" };
+            }
+            return parsed;
         }
         return { success: false, message: "Country not found" };
     }
