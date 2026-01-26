@@ -22,8 +22,29 @@ app.use(helmet({
 /**
  * CORS Configuration
  */
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:3002',
+    'http://127.0.0.1:3003',
+    'https://inventory.vayunexsolution.com'
+];
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*', // Configurable via environment variable
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, Postman)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -97,6 +118,10 @@ const registerRoutes = () => {
 
     const countryRoutes = require('./projects/inventory/controllers/country.controller');
     app.use('/api/v1/inventory/countries', countryRoutes);
+
+    // Admin routes (protected)
+    const menuRoutes = require('./projects/admin/controllers/menu.controller');
+    app.use('/api/v1/admin/menus', menuRoutes);
 
     logger.info('Routes registered successfully');
 };

@@ -5,7 +5,8 @@ import axios from 'axios';
 import { AppUser } from './index';
 
 // API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+// API Base URL
+const API_BASE_URL = 'https://inv-api.vayunexsolution.com'; // Production API
 
 // Create axios instance
 const apiClient = axios.create({
@@ -39,13 +40,13 @@ apiClient.interceptors.response.use(
         if (error.response) {
             // Server responded with error
             const { status, data } = error.response;
-            
+
             if (status === 401) {
                 // Unauthorized - clear user and redirect to login
                 AppUser.clear();
                 window.location.reload();
             }
-            
+
             return Promise.reject(data.error || data.message || 'Request failed');
         } else if (error.request) {
             // Request made but no response

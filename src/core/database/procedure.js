@@ -64,17 +64,27 @@ const callProcedureMultiParam = async (procedureName, inputParams = []) => {
     try {
         connection = await pool.getConnection();
 
-        // Convert each param to JSON string
-        const jsonParams = inputParams.map(param => JSON.stringify(param));
+        // Convert params: stringify only objects/arrays, keep primitives as-is
+        const processedParams = inputParams.map(param => {
+            // If it's an object or array, stringify it
+            if (param !== null && typeof param === 'object') {
+                return JSON.stringify(param);
+            }
+            // Otherwise keep primitive values (numbers, strings, booleans) as-is
+            return param;
+        });
 
         // Build placeholders for parameters
-        const placeholders = jsonParams.map(() => '?').join(', ');
+        const placeholders = processedParams.map(() => '?').join(', ');
 
-        logger.debug(`Calling procedure: ${procedureName}`, { inputCount: jsonParams.length });
+        logger.debug(`Calling procedure: ${procedureName}`, {
+            inputCount: processedParams.length,
+            params: processedParams
+        });
 
         const [results] = await connection.execute(
             `CALL ${procedureName}(${placeholders})`,
-            jsonParams
+            processedParams
         );
 
         const data = results.length > 1 ? results.slice(0, -1) : results;
