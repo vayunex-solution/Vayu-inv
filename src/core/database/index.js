@@ -16,5 +16,12 @@ module.exports = {
     // Stored procedure utilities
     callProcedure,
     callProcedureMultiParam,
-    callProcedureWithOutput
+    callProcedureWithOutput,
+
+    // Raw Query
+    query: async (sql, params) => {
+        const pool = await getPool();
+        const [rows] = await pool.execute(sql, params);
+        return rows;
+    }
 };

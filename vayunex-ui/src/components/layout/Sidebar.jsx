@@ -7,8 +7,8 @@ import {
   ChevronDown, ChevronRight, X, Leaf, Box
 } from 'lucide-react';
 import { companyConfig } from '../../config/company';
-import menuData from '../../data/menu.json';
-import { useTabStore } from '../../lib';
+import { useTabStore, apiClient } from '../../lib';
+import { useEffect, useState } from 'react';
 
 const iconMap = {
   LayoutDashboard, Package, Tags, Ruler, ArrowLeftRight,
@@ -67,6 +67,25 @@ const MenuItem = ({ item, level = 0 }) => {
 };
 
 const Sidebar = ({ show, onHide }) => {
+  const [menuData, setMenuData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMenu = async () => {
+      try {
+        const response = await apiClient.get('/api/v1/admin/menus/tree');
+        // Handle both standard response format and direct array
+        setMenuData(response.data || response || []);
+      } catch (error) {
+        console.error('Failed to fetch menu:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMenu();
+  }, []);
+
   return (
     <>
       {/* Backdrop for mobile */}
@@ -99,9 +118,17 @@ const Sidebar = ({ show, onHide }) => {
             Main Menu
           </small>
           <Nav className="flex-column">
-            {menuData.map(item => (
-              <MenuItem key={item.id} item={item} />
-            ))}
+            {loading ? (
+              <div className="p-3 text-center">
+                <div className="spinner-border spinner-border-sm text-success" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            ) : (
+              menuData.map(item => (
+                <MenuItem key={item.id} item={item} />
+              ))
+            )}
           </Nav>
         </div>
 

@@ -1,6 +1,6 @@
 const MenuInterface = require("../../interfaces/menu/menu.interface");
 const { Menu, MenuModel } = require("../../models/menu/menu.model");
-const { callProcedureMultiParam } = require("../../../../core/database");
+const { callProcedureMultiParam, query } = require("../../../../core/database");
 
 class MenuService extends MenuInterface {
     /**
@@ -44,14 +44,55 @@ class MenuService extends MenuInterface {
      * Get menu tree list
      * Uses usp_app_menus_tree_list
      */
+    /**
+     * Get menu tree list
+     * Fetches all active menus and builds tree in JS
+     */
     async getTreeList() {
-        // No parameters required for this SP
-        const result = await callProcedureMultiParam('usp_app_menus_tree_list', []);
+        try {
+            // Fetch all active menus
+            const sql = `
+                SELECT id, menu_key, title, icon, url, parent_id, sort_order 
+                FROM app_menus 
+                WHERE is_active = 1 
+                ORDER BY sort_order ASC
+            `;
+            const rows = await query(sql);
 
-        if (result && result.data && result.data.length > 0 && result.data[0].response) {
-            return JSON.parse(result.data[0].response);
+            // Build Tree
+            const map = {};
+            const tree = [];
+
+            // Initialize map
+            rows.forEach(row => {
+                map[row.id] = { 
+                    id: row.menu_key, // Frontend expects logical ID (string)
+                    db_id: row.id,     // Keep DB ID if needed
+                    title: row.title,
+                    icon: row.icon,
+                    url: row.url,
+                    children: []
+                };
+            });
+
+            // Connect parents and children
+            rows.forEach(row => {
+                const node = map[row.id];
+                if (row.parent_id) {
+                    if (map[row.parent_id]) {
+                        map[row.parent_id].children.push(node);
+                    }
+                } else {
+                    tree.push(node);
+                }
+            });
+
+            return tree;
+        } catch (error) {
+            console.error("Error building menu tree:", error);
+            // Fallback to empty or throw
+            throw error;
         }
-        return [];
     }
 
     /**
