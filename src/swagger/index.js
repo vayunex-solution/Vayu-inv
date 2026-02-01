@@ -24,16 +24,23 @@ const swaggerDefinition = {
             url: 'https://opensource.org/licenses/ISC'
         }
     },
-    servers: [
-        {
-            url: `http://localhost:${config.server.port}`,
-            description: 'Development server (Local)'
-        },
-        {
-            url: 'https://inv-api.vayunexsolution.com',
-            description: 'Production server'
-        }
-    ],
+    servers: config.server.env === 'production'
+        ? [
+            {
+                url: 'https://inv-api.vayunexsolution.com',
+                description: 'Production server'
+            }
+        ]
+        : [
+            {
+                url: `http://localhost:${config.server.port}`,
+                description: 'Development server (Local)'
+            },
+            {
+                url: 'https://inv-api.vayunexsolution.com',
+                description: 'Production server'
+            }
+        ],
     components: {
         securitySchemes: {
             bearerAuth: {
