@@ -76,15 +76,12 @@ const login = async (email, password) => {
             throw error;
         }
 
-        // For demo purposes, if stored procedure doesn't exist, use direct query or demo credentials
-        const errorMsg = error.message || '';
-        if (errorMsg.includes('PROCEDURE') || errorMsg.includes('procedure') ||
-            errorMsg.includes('Stored Procedure') || errorMsg.includes('not found') ||
-            error.errorCode === 'NOT_FOUND') {
-            return handleDirectLogin(email, password);
-        }
+        // Log the actual error for debugging
+        logger.error('Login procedure error:', error.message);
 
-        throw error;
+        // For any database/procedure error, fallback to direct query
+        // This handles: missing procedures, connection issues, SQL errors, etc.
+        return handleDirectLogin(email, password);
     }
 };
 
