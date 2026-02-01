@@ -13,11 +13,15 @@ require('dotenv').config();
         });
         console.log('Connected!');
 
-        console.log('Updating "Settings" to "Settings.." to verify dynamic behavior...');
+        // List all menus to debug
+        const [rows] = await conn.execute('SELECT id, menu_key, title FROM app_menus');
+        console.log('Current Menus:', rows);
+
+        console.log('Updating ID 4 to "Settings.." ...');
         
         const [result] = await conn.execute(
-            'UPDATE app_menus SET title = ? WHERE menu_key = ?',
-            ['Settings..', 'settings']
+            'UPDATE app_menus SET title = ? WHERE id = ?',
+            ['Settings..', 4]
         );
 
         console.log(`Rows affected: ${result.affectedRows}`);
