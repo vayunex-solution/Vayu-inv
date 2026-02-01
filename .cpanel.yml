@@ -23,15 +23,12 @@ deployment:
     - /bin/cp -f package-lock.json /home/vayunexs/inv-api.vayunexsolution.com/
     
     # ============================================
-    # FRONTEND DEPLOYMENT (Build on server)
+    # FRONTEND DEPLOYMENT (Pre-built)
     # ============================================
-    # Note: Building on server ensures environment consistency
-    - cd vayunex-ui && npm install && npm run build
-    
     # Create directory
     - mkdir -p /home/vayunexs/inventory.vayunexsolution.com
-    
-    # Copy build files
+
+    # Copy pre-built files from repository
     - /bin/cp -Rf vayunex-ui/dist/* /home/vayunexs/inventory.vayunexsolution.com/
     
     # ============================================
