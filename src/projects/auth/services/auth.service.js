@@ -36,7 +36,6 @@ const login = async (email, password) => {
         }
 
         const user = result.data[0];
-        debugger;
         user.is_active = 1;
 
         // Verify password (check both password_hash and password columns for compatibility)
