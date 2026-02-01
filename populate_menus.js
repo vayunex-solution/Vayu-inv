@@ -32,41 +32,41 @@ const menuItems = [
         console.log('Connected!');
 
         // Check existing count
-        const [rows] = await conn.execute('SELECT COUNT(*) as count FROM app_menus');
-        const count = rows[0].count;
-        console.log(`Current menu items in DB: ${count}`);
+        console.log('Resetting menu data to ensure integrity...');
+        
+        // Disable foreign key checks to allow truncate
+        await conn.query('SET FOREIGN_KEY_CHECKS = 0');
+        await conn.query('TRUNCATE TABLE app_menus');
+        await conn.query('SET FOREIGN_KEY_CHECKS = 1');
+        console.log('Table truncated.');
 
-        if (count === 0) {
-            console.log('Menu table is empty. Inserting default data...');
+        console.log('Inserting default data...');
             
-            for (const item of menuItems) {
-                try {
-                    // Try insert
-                    // Note: explicit IDs for roots to ensure parent linking works
-                    if (item.id) {
-                         await conn.execute(
-                            `INSERT INTO app_menus (id, menu_key, title, icon, url, parent_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                            [item.id, item.menu_key, item.title, item.icon, item.url, item.parent_id, item.sort_order]
-                        );
-                    } else {
+        for (const item of menuItems) {
+            try {
+                // Try insert
+                // Note: explicit IDs for roots to ensure parent linking works
+                if (item.id) {
                         await conn.execute(
-                            `INSERT INTO app_menus (menu_key, title, icon, url, parent_id, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
-                            [item.menu_key, item.title, item.icon, item.url, item.parent_id, item.sort_order]
-                        );
-                    }
-                    console.log(`Inserted: ${item.title}`);
-                } catch (e) {
-                    console.error(`Failed to insert ${item.title}:`, e.message);
+                        `INSERT INTO app_menus (id, menu_key, title, icon, url, parent_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        [item.id, item.menu_key, item.title, item.icon, item.url, item.parent_id, item.sort_order]
+                    );
+                } else {
+                    await conn.execute(
+                        `INSERT INTO app_menus (menu_key, title, icon, url, parent_id, sort_order) VALUES (?, ?, ?, ?, ?, ?)`,
+                        [item.menu_key, item.title, item.icon, item.url, item.parent_id, item.sort_order]
+                    );
                 }
+                console.log(`Inserted: ${item.title}`);
+            } catch (e) {
+                console.error(`Failed to insert ${item.title}:`, e.message);
             }
-            console.log('✅ Menu population complete!');
-        } else {
-            console.log('✅ Menu data already exists. Skipping insertion.');
-            
-            // Show what exists
-            const [menus] = await conn.execute('SELECT id, title, parent_id FROM app_menus ORDER BY sort_order');
-            console.log('Existing Menus:', JSON.stringify(menus, null, 2));
         }
+        console.log('✅ Menu reset complete!');
+        
+        // Show what exists
+        const [menus] = await conn.execute('SELECT id, title, parent_id, sort_order FROM app_menus ORDER BY sort_order');
+        console.log('New Menus:', JSON.stringify(menus, null, 2));
 
     } catch (err) {
         console.error('❌ Error:', err.message);
