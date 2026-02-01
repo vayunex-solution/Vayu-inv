@@ -33,7 +33,8 @@ const allowedOrigins = [
     'http://127.0.0.1:3003',
     'http://localhost:5173',
     'https://localhost:5173',
-    'https://inventory.vayunexsolution.com'
+    'https://inventory.vayunexsolution.com',
+    'https://inv-api.vayunexsolution.com'
 ];
 
 app.use(cors({
