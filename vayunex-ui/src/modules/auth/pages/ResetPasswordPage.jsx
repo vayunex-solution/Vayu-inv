@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { Lock, Eye, EyeOff, ArrowRight, Leaf } from 'lucide-react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import apiClient from '../../../lib/apiClient';
+import { companyConfig } from '../../../config/company';
 
 const ResetPasswordPage = () => {
     const [searchParams] = useSearchParams();
@@ -10,11 +12,11 @@ const ResetPasswordPage = () => {
 
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
 
-    // Protect route if no token
     useEffect(() => {
         if (!token) {
             setError('Invalid or missing reset token.');
@@ -58,66 +60,125 @@ const ResetPasswordPage = () => {
     };
 
     return (
-        <div className="login-page">
-            <div className="login-bg-overlay"></div>
-            <Container className="h-100 d-flex align-items-center justify-content-center position-relative" style={{ zIndex: 1, minHeight: '100vh' }}>
-                <Row className="w-100 justify-content-center">
-                    <Col md={6} lg={5} xl={4}>
-                        <div className="text-center mb-4">
-                            <h2 className="text-white fw-bold mb-0">Vayunex Solution</h2>
-                            <p className="text-white-50">Set New Password</p>
+        <div className="auth-page">
+            {/* Animated Background */}
+            <div className="auth-bg">
+                <div className="orb orb-1"></div>
+                <div className="orb orb-2"></div>
+                <div className="orb orb-3"></div>
+                <div className="grid-overlay"></div>
+            </div>
+
+            <Container className="position-relative" style={{ zIndex: 10 }}>
+                <Row className="justify-content-center align-items-center min-vh-100 py-5">
+                    <Col xs={11} sm={10} md={8} lg={5} xl={4}>
+
+                        {/* Logo Section */}
+                        <div className="text-center mb-5">
+                            <div className="logo-container">
+                                <div className="logo-glow"></div>
+                                <div className="logo-icon">
+                                    <Leaf size={36} strokeWidth={2} />
+                                </div>
+                            </div>
+                            <h1 className="brand-title">{companyConfig.name}</h1>
+                            <p className="brand-subtitle">{companyConfig.tagline}</p>
                         </div>
 
-                        <Card className="login-card shadow-lg border-0 rounded-4 overflow-hidden">
-                            <Card.Body className="p-4 p-md-5">
-                                <div className="text-center mb-4">
-                                    <h4 className="fw-bold text-dark">New Password</h4>
-                                    <p className="text-muted small">Please create a strong password for your account.</p>
-                                </div>
+                        {/* Auth Card */}
+                        <div className="auth-card">
+                            <div className="card-shine"></div>
 
-                                {message && <Alert variant="success">{message}</Alert>}
-                                {error && <Alert variant="danger">{error}</Alert>}
+                            <div className="auth-card-header">
+                                <h2>Set New Password</h2>
+                                <p>Create a strong password for your account</p>
+                            </div>
 
-                                {!message && (
-                                    <Form onSubmit={handleSubmit}>
-                                        <Form.Group className="mb-3" controlId="password">
-                                            <Form.Label className="fw-semibold text-secondary small text-uppercase">New Password</Form.Label>
+                            {message && (
+                                <Alert variant="success" className="auth-alert border-success bg-success-subtle text-success">
+                                    <span className="alert-icon">✅</span>
+                                    {message}
+                                </Alert>
+                            )}
+
+                            {error && (
+                                <Alert variant="danger" className="auth-alert">
+                                    <span className="alert-icon">⚠️</span>
+                                    {error}
+                                </Alert>
+                            )}
+
+                            {!message && (
+                                <Form onSubmit={handleSubmit} className="auth-form">
+                                    <Form.Group className="form-group-premium">
+                                        <Form.Label>New Password</Form.Label>
+                                        <div className="input-wrapper">
+                                            <span className="input-icon"><Lock size={18} /></span>
                                             <Form.Control
-                                                type="password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                placeholder="Enter new password"
                                                 value={password}
                                                 onChange={(e) => setPassword(e.target.value)}
                                                 required
                                                 minLength={8}
-                                                className="form-control-lg bg-light border-0"
+                                                className="premium-input"
                                             />
-                                        </Form.Group>
+                                            <button
+                                                type="button"
+                                                className="toggle-password"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                            >
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                    </Form.Group>
 
-                                        <Form.Group className="mb-4" controlId="confirmPassword">
-                                            <Form.Label className="fw-semibold text-secondary small text-uppercase">Confirm Password</Form.Label>
+                                    <Form.Group className="form-group-premium">
+                                        <Form.Label>Confirm Password</Form.Label>
+                                        <div className="input-wrapper">
+                                            <span className="input-icon"><Lock size={18} /></span>
                                             <Form.Control
-                                                type="password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                placeholder="Confirm new password"
                                                 value={confirmPassword}
                                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                                 required
-                                                className="form-control-lg bg-light border-0"
+                                                className="premium-input"
                                             />
-                                        </Form.Group>
-
-                                        <div className="d-grid mb-4">
-                                            <Button variant="primary" size="lg" type="submit" disabled={loading || !token} className="fw-bold shadow-sm">
-                                                {loading ? 'Resetting...' : 'Reset Password'}
-                                            </Button>
                                         </div>
+                                    </Form.Group>
 
-                                        <div className="text-center">
-                                            <Link to="/login" className="text-decoration-none fw-semibold text-primary">
-                                                <i className="bi bi-arrow-left me-1"></i> Back to Login
-                                            </Link>
-                                        </div>
-                                    </Form>
-                                )}
-                            </Card.Body>
-                        </Card>
+                                    <Button
+                                        type="submit"
+                                        className="btn-premium mb-4"
+                                        disabled={loading || !token}
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Spinner size="sm" className="me-2" />
+                                                Resetting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Reset Password
+                                                <ArrowRight size={18} className="ms-2" />
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    <div className="text-center">
+                                        <Link to="/login" className="forgot-link">
+                                            Back to Login
+                                        </Link>
+                                    </div>
+                                </Form>
+                            )}
+                        </div>
+
+                        {/* Copyright */}
+                        <p className="auth-copyright">
+                            © {new Date().getFullYear()} {companyConfig.name}. All rights reserved.
+                        </p>
                     </Col>
                 </Row>
             </Container>
