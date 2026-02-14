@@ -3,7 +3,7 @@
  * Business logic for authentication operations
  */
 const bcrypt = require('bcryptjs');
-const bcrypt = require('bcryptjs');
+
 const crypto = require('crypto');
 const { callProcedure, getPool } = require('../../../core/database');
 const { generateTokenPair } = require('../../../core/auth');
