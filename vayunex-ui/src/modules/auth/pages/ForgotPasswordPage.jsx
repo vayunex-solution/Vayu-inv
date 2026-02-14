@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { Mail, ArrowRight, ArrowLeft, Leaf } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import apiClient from '../../../lib/apiClient';
 import { companyConfig } from '../../../config/company';
 
@@ -10,6 +9,11 @@ const ForgotPasswordPage = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  const navigateTo = (path) => {
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new Event('popstate'));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -111,9 +115,16 @@ const ForgotPasswordPage = () => {
                 </Button>
 
                 <div className="text-center">
-                  <Link to="/login" className="forgot-link d-inline-flex align-items-center gap-2">
+                  <a
+                    href="/login"
+                    className="forgot-link d-inline-flex align-items-center gap-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigateTo('/login');
+                    }}
+                  >
                     <ArrowLeft size={16} /> Back to Login
-                  </Link>
+                  </a>
                 </div>
               </Form>
             </div>
