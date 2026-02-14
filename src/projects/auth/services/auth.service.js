@@ -402,7 +402,7 @@ const forgotPassword = async (email) => {
         const pool = getPool();
         
         // 1. Check if user exists
-        const [users] = await pool.execute('SELECT id, email, name FROM users WHERE email = ?', [email]);
+        const [users] = await pool.execute('SELECT id, email, username FROM users WHERE email = ?', [email]);
         
         if (users.length === 0) {
             // Return true/success even if user not found (Security best practice)
