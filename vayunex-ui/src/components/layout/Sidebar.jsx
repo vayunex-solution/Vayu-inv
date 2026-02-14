@@ -114,7 +114,7 @@ const Sidebar = ({ show, onHide }) => {
 
         <div className="flex-fill overflow-auto p-3">
           <small className="text-muted fw-bold text-uppercase ls-1 d-block mb-3" style={{ fontSize: '0.75rem' }}>
-            Dynamic Menu Check
+            Main Menu
           </small>
           <Nav className="flex-column">
             {loading ? (
