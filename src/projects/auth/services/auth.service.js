@@ -3,7 +3,9 @@
  * Business logic for authentication operations
  */
 const bcrypt = require('bcryptjs');
-const { callProcedure } = require('../../../core/database');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { callProcedure, getPool } = require('../../../core/database');
 const { generateTokenPair } = require('../../../core/auth');
 const {
     AuthenticationException,
@@ -387,10 +389,106 @@ const handleDirectRegister = async (email, passwordHash, name, role) => {
     }
 };
 
+/**
+ * Initiate Forgot Password
+ * @param {string} email
+ */
+const forgotPassword = async (email) => {
+    if (!email) {
+        throw new ValidationException('Email is required');
+    }
+
+    try {
+        const pool = getPool();
+        
+        // 1. Check if user exists
+        const [users] = await pool.execute('SELECT id, email, name FROM users WHERE email = ?', [email]);
+        
+        if (users.length === 0) {
+            // Return true/success even if user not found (Security best practice)
+            // But for this app, maybe user wants to know? 
+            // Let's throw error for better UX in internal apps
+            throw new NotFoundException('User with this email not found');
+        }
+
+        const user = users[0];
+
+        // 2. Generate Token
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires = new Date(Date.now() + 3600000); // 1 hour
+
+        // 3. Save to DB
+        await pool.execute(
+            'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?',
+            [token, expires, user.id]
+        );
+
+        // 4. Send Email
+        const { sendPasswordResetEmail } = require('../../services/email/email.service');
+        const resetLink = `https://inventory.vayunexsolution.com/reset-password?token=${token}`;
+        
+        await sendPasswordResetEmail(user, resetLink);
+
+        return { message: 'Password reset link sent to your email' };
+
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
+ * Reset Password
+ * @param {string} token
+ * @param {string} newPassword
+ */
+const resetPassword = async (token, newPassword) => {
+    if (!token || !newPassword) {
+        throw new ValidationException('Token and password are required');
+    }
+
+    if (newPassword.length < 8) {
+        throw new ValidationException('Password must be at least 8 characters');
+    }
+
+    try {
+        const pool = getPool();
+
+        // 1. Find user by token and check expiry
+        const [users] = await pool.execute(
+            'SELECT id, email FROM users WHERE reset_token = ? AND reset_token_expires > NOW()',
+            [token]
+        );
+
+        if (users.length === 0) {
+            throw new ValidationException('Invalid or expired reset token');
+        }
+
+        const user = users[0];
+
+        // 2. Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+
+        // 3. Update password and clear token
+        // Updating both password and password_hash for compatibility
+        await pool.execute(
+            'UPDATE users SET password = ?, password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',
+            [passwordHash, passwordHash, user.id]
+        );
+
+        return { message: 'Password has been reset successfully' };
+
+    } catch (error) {
+        throw error;
+    }
+};
+
 module.exports = {
     login,
     register,
     refreshTokens,
     getUserById,
-    changePassword
+    changePassword,
+    forgotPassword,
+    resetPassword
 };

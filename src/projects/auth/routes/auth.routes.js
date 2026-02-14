@@ -163,4 +163,63 @@ router.get('/me', authenticate, authController.getCurrentUser);
  */
 router.post('/change-password', authenticate, authController.changePassword);
 
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     description: Send password reset link to user email
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@vaynex.com
+ *     responses:
+ *       200:
+ *         description: Reset email sent
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.post('/forgot-password', authController.forgotPassword);
+
+/**
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Reset password
+ *     description: Set new password using reset token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               token:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ */
+router.post('/reset-password', authController.resetPassword);
+
 module.exports = router;

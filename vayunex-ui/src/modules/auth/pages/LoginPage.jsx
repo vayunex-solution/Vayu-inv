@@ -49,7 +49,7 @@ const LoginPage = ({ onLogin }) => {
       <Container className="position-relative" style={{ zIndex: 10 }}>
         <Row className="justify-content-center align-items-center min-vh-100 py-5">
           <Col xs={11} sm={10} md={8} lg={5} xl={4}>
-            
+
             {/* Logo Section */}
             <div className="text-center mb-5">
               <div className="logo-container">
@@ -65,7 +65,7 @@ const LoginPage = ({ onLogin }) => {
             {/* Login Card */}
             <div className="auth-card">
               <div className="card-shine"></div>
-              
+
               <div className="auth-card-header">
                 <h2>Welcome Back</h2>
                 <p>Sign in to continue to your dashboard</p>
@@ -106,7 +106,7 @@ const LoginPage = ({ onLogin }) => {
                       required
                       className="premium-input"
                     />
-                    <button 
+                    <button
                       type="button"
                       className="toggle-password"
                       onClick={() => setShowPassword(!showPassword)}
@@ -117,16 +117,27 @@ const LoginPage = ({ onLogin }) => {
                 </Form.Group>
 
                 <div className="form-options">
-                  <Form.Check 
-                    type="checkbox" 
-                    label="Remember me" 
+                  <Form.Check
+                    type="checkbox"
+                    label="Remember me"
                     className="premium-checkbox"
                   />
-                  <a href="#" className="forgot-link">Forgot Password?</a>
+                  <a
+                    href="/forgot-password"
+                    className="forgot-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.history.pushState({}, '', '/forgot-password');
+                      // Trigger popstate to update App.jsx state
+                      window.dispatchEvent(new Event('popstate'));
+                    }}
+                  >
+                    Forgot Password?
+                  </a>
                 </div>
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="btn-premium"
                   disabled={loading}
                 >
@@ -146,7 +157,7 @@ const LoginPage = ({ onLogin }) => {
 
               <div className="auth-footer">
                 <span>Don't have an account?</span>
-                <a 
+                <a
                   href="/signup"
                   onClick={(e) => {
                     e.preventDefault();

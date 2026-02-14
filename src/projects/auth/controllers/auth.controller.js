@@ -67,10 +67,36 @@ const register = asyncHandler(async (req, res) => {
     return successResponse(res, result, 'Registration successful', 201);
 });
 
+/**
+ * Forgot Password
+ * POST /api/v1/auth/forgot-password
+ */
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    const result = await authService.forgotPassword(email);
+
+    return successResponse(res, result, 'Password reset email sent');
+});
+
+/**
+ * Reset Password
+ * POST /api/v1/auth/reset-password
+ */
+const resetPassword = asyncHandler(async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    const result = await authService.resetPassword(token, newPassword);
+
+    return successResponse(res, result, 'Password reset successfully');
+});
+
 module.exports = {
     login,
     register,
     refreshToken,
     getCurrentUser,
-    changePassword
+    changePassword,
+    forgotPassword,
+    resetPassword
 };

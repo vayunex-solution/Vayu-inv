@@ -86,7 +86,48 @@ const sendWelcomeEmail = async (user) => {
     }
 };
 
+/**
+ * Send password reset email
+ * @param {Object} user - User object with email and name
+ * @param {string} resetLink - Link to reset password
+ * @returns {Promise<Object>}
+ */
+const sendPasswordResetEmail = async (user, resetLink) => {
+    try {
+        // Load template - use absolute path from project root
+        const templatePath = path.join(process.cwd(), 'src', 'services', 'email', 'templates', 'reset-password.html');
+
+        // Check if template exists
+        if (!fs.existsSync(templatePath)) {
+            logger.error(`Reset password email template not found at: ${templatePath}`);
+            return { success: false, error: 'Email template not found' };
+        }
+
+        let template = fs.readFileSync(templatePath, 'utf-8');
+
+        // Replace placeholders
+        template = template
+            .replace(/{{username}}/g, user.name || 'User')
+            .replace(/{{email}}/g, user.email)
+            .replace(/{{resetLink}}/g, resetLink)
+            .replace(/{{year}}/g, new Date().getFullYear());
+
+        const result = await sendEmail({
+            to: user.email,
+            subject: 'Reset your Vayunex password',
+            html: template,
+            text: `Please verify your email by clicking the following link: ${resetLink}`
+        });
+
+        return result;
+    } catch (error) {
+        logger.error(`Reset password email failed: ${error.message}`);
+        return { success: false, error: error.message };
+    }
+};
+
 module.exports = {
     sendEmail,
-    sendWelcomeEmail
+    sendWelcomeEmail,
+    sendPasswordResetEmail
 };
