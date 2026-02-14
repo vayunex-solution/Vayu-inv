@@ -303,7 +303,7 @@ const register = async (userData) => {
 
         // Send welcome email (non-blocking)
         try {
-            const { sendWelcomeEmail } = require('../../services/email/email.service');
+            const { sendWelcomeEmail } = require('../../../services/email/email.service');
             await sendWelcomeEmail({ email, username: name });
             logger.info('Welcome email sent', { email });
         } catch (emailError) {
@@ -361,7 +361,7 @@ const handleDirectRegister = async (email, passwordHash, name, role) => {
 
         // Send welcome email (non-blocking)
         try {
-            const { sendWelcomeEmail } = require('../../services/email/email.service');
+            const { sendWelcomeEmail } = require('../../../services/email/email.service');
             await sendWelcomeEmail({ email, username: name });
             logger.info('Welcome email sent', { email });
         } catch (emailError) {
@@ -424,7 +424,7 @@ const forgotPassword = async (email) => {
         );
 
         // 4. Send Email
-        const { sendPasswordResetEmail } = require('../../services/email/email.service');
+        const { sendPasswordResetEmail } = require('../../../services/email/email.service');
         const resetLink = `https://inventory.vayunexsolution.com/reset-password?token=${token}`;
         
         await sendPasswordResetEmail(user, resetLink);
