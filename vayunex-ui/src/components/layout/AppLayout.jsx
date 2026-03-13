@@ -7,7 +7,7 @@ import { useTabStore } from '../../lib';
 
 // Import pages from modules
 import { DashboardPage } from '../../modules/dashboard';
-import { ItemsListPage } from '../../modules/inventory';
+import { ItemsListPage, CountriesPage } from '../../modules/inventory';
 import { CategoriesPage } from '../../modules/categories';
 import { Sparkles } from 'lucide-react';
 
@@ -16,6 +16,7 @@ const componentMap = {
   dashboard: DashboardPage,
   Dashboard: DashboardPage,
   items: ItemsListPage,
+  countries: CountriesPage,
   categories: CategoriesPage,
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">

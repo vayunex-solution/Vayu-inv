@@ -1,40 +1,34 @@
 // src/modules/inventory/services/inventoryService.js
-// Inventory related service functions
+// Inventory related service functions using real API
 
-import itemsData from '../../../data/items.json';
-import categoriesData from '../../../data/categories.json';
+import { apiClient } from '../../../lib';
 
 /**
- * Get all items with optional filtering
- * @param {object} params - Search and filter parameters
- * @returns {Promise<{success: boolean, data: array}>}
+ * Get all items with pagination and filtering
+ * @param {object} params - Search, pagination and filter parameters
+ * @returns {Promise<{success: boolean, data: object, error?: object}>}
  */
 export const getItems = async (params = {}) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    try {
+        const queryParams = new URLSearchParams();
+        if (params.page) queryParams.append('page', params.page);
+        if (params.limit) queryParams.append('limit', params.limit);
+        if (params.search) queryParams.append('search', params.search);
+        if (params.category_id) queryParams.append('category_id', params.category_id);
+        if (params.sort_by) queryParams.append('sortBy', params.sort_by);
+        if (params.sort_order) queryParams.append('sortOrder', params.sort_order);
 
-    let items = [...itemsData];
-
-    // Add category name to each item
-    items = items.map(item => ({
-        ...item,
-        category_name: categoriesData.find(c => c.id === item.category_id)?.name || 'Uncategorized'
-    }));
-
-    // Apply search filter
-    if (params.search) {
-        const searchLower = params.search.toLowerCase();
-        items = items.filter(item =>
-            item.item_name.toLowerCase().includes(searchLower) ||
-            item.item_code.toLowerCase().includes(searchLower)
-        );
+        const response = await apiClient.get(`/api/v1/inventory/items?${queryParams.toString()}`);
+        return {
+            success: true,
+            data: response.data?.data || { items: [], pagination: {} } 
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: { message: error.response?.data?.message || 'Failed to fetch items' }
+        };
     }
-
-    // Apply category filter
-    if (params.category_id) {
-        items = items.filter(item => item.category_id === params.category_id);
-    }
-
-    return { success: true, data: items };
 };
 
 /**
@@ -43,65 +37,68 @@ export const getItems = async (params = {}) => {
  * @returns {Promise<{success: boolean, data?: object, error?: object}>}
  */
 export const getItemById = async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 200));
-
-    const item = itemsData.find(i => i.id === id);
-
-    if (item) {
+    try {
+        const response = await apiClient.get(`/api/v1/inventory/items/${id}`);
         return {
             success: true,
-            data: {
-                ...item,
-                category_name: categoriesData.find(c => c.id === item.category_id)?.name || 'Uncategorized'
-            }
+            data: response.data?.data
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: { message: error.response?.data?.message || 'Item not found' }
         };
     }
-
-    return {
-        success: false,
-        error: { message: 'Item not found' }
-    };
 };
 
 /**
  * Create new item
  * @param {object} itemData 
- * @returns {Promise<{success: boolean, data: object}>}
+ * @returns {Promise<{success: boolean, data?: object, error?: object}>}
  */
 export const createItem = async (itemData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const newItem = {
-        id: Date.now(),
-        ...itemData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-    };
-
-    return { success: true, data: newItem };
+    try {
+        const response = await apiClient.post('/api/v1/inventory/items', itemData);
+        return { success: true, data: response.data?.data };
+    } catch (error) {
+        return {
+            success: false,
+            error: { message: error.response?.data?.message || 'Failed to create item' }
+        };
+    }
 };
 
 /**
  * Update existing item
  * @param {number} id 
  * @param {object} itemData 
- * @returns {Promise<{success: boolean, data: object}>}
+ * @returns {Promise<{success: boolean, data?: object, error?: object}>}
  */
 export const updateItem = async (id, itemData) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    return {
-        success: true,
-        data: { id, ...itemData, updated_at: new Date().toISOString() }
-    };
+    try {
+        const response = await apiClient.put(`/api/v1/inventory/items/${id}`, itemData);
+        return { success: true, data: response.data?.data };
+    } catch (error) {
+        return {
+            success: false,
+            error: { message: error.response?.data?.message || 'Failed to update item' }
+        };
+    }
 };
 
 /**
  * Delete item
  * @param {number} id 
- * @returns {Promise<{success: boolean}>}
+ * @returns {Promise<{success: boolean, error?: object}>}
  */
 export const deleteItem = async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return { success: true };
+    try {
+        await apiClient.delete(`/api/v1/inventory/items/${id}`);
+        return { success: true };
+    } catch (error) {
+        return {
+            success: false,
+            error: { message: error.response?.data?.message || 'Failed to delete item' }
+        };
+    }
 };

@@ -1,15 +1,25 @@
 // src/modules/categories/services/categoryService.js
-// Category related service functions
+// Category related service functions using real API
 
-import categoriesData from '../../../data/categories.json';
+import { apiClient } from '../../../lib';
 
 /**
  * Get all categories
- * @returns {Promise<{success: boolean, data: array}>}
+ * @returns {Promise<{success: boolean, data: array, error?: object}>}
  */
 export const getCategories = async () => {
-  await new Promise(resolve => setTimeout(resolve, 200));
-  return { success: true, data: categoriesData };
+  try {
+    const response = await apiClient.get('/api/v1/inventory/categories');
+    return {
+      success: true,
+      data: response.data?.data || []
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: { message: error.response?.data?.message || 'Failed to fetch categories' }
+    };
+  }
 };
 
 /**
@@ -18,58 +28,68 @@ export const getCategories = async () => {
  * @returns {Promise<{success: boolean, data?: object, error?: object}>}
  */
 export const getCategoryById = async (id) => {
-  await new Promise(resolve => setTimeout(resolve, 200));
-  
-  const category = categoriesData.find(c => c.id === id);
-  
-  if (category) {
-    return { success: true, data: category };
+  try {
+    const response = await apiClient.get(`/api/v1/inventory/categories/${id}`);
+    return {
+      success: true,
+      data: response.data?.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: { message: error.response?.data?.message || 'Category not found' }
+    };
   }
-  
-  return {
-    success: false,
-    error: { message: 'Category not found' }
-  };
 };
 
 /**
  * Create new category
  * @param {object} categoryData 
- * @returns {Promise<{success: boolean, data: object}>}
+ * @returns {Promise<{success: boolean, data?: object, error?: object}>}
  */
 export const createCategory = async (categoryData) => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  const newCategory = {
-    id: Date.now(),
-    ...categoryData,
-    created_at: new Date().toISOString()
-  };
-  
-  return { success: true, data: newCategory };
+  try {
+    const response = await apiClient.post('/api/v1/inventory/categories', categoryData);
+    return { success: true, data: response.data?.data };
+  } catch (error) {
+    return {
+      success: false,
+      error: { message: error.response?.data?.message || 'Failed to create category' }
+    };
+  }
 };
 
 /**
  * Update existing category
  * @param {number} id 
  * @param {object} categoryData 
- * @returns {Promise<{success: boolean, data: object}>}
+ * @returns {Promise<{success: boolean, data?: object, error?: object}>}
  */
 export const updateCategory = async (id, categoryData) => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return {
-    success: true,
-    data: { id, ...categoryData }
-  };
+  try {
+    const response = await apiClient.put(`/api/v1/inventory/categories/${id}`, categoryData);
+    return { success: true, data: response.data?.data };
+  } catch (error) {
+    return {
+      success: false,
+      error: { message: error.response?.data?.message || 'Failed to update category' }
+    };
+  }
 };
 
 /**
  * Delete category
  * @param {number} id 
- * @returns {Promise<{success: boolean}>}
+ * @returns {Promise<{success: boolean, error?: object}>}
  */
 export const deleteCategory = async (id) => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  return { success: true };
+  try {
+    await apiClient.delete(`/api/v1/inventory/categories/${id}`);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: { message: error.response?.data?.message || 'Failed to delete category' }
+    };
+  }
 };
