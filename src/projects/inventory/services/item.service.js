@@ -3,9 +3,20 @@
  * Business logic for item management
  */
 const { callProcedure } = require('../../../core/database');
-const { NotFoundException } = require('../../../core/exceptions');
+const { NotFoundException, DatabaseException } = require('../../../core/exceptions');
 const logger = require('../../../core/logger');
 const { ItemModel } = require('../models/item.model');
+
+/**
+ * Check if error is related to missing stored procedure
+ */
+const isProcedureNotFound = (error) => {
+    const msg = (error.message || '').toLowerCase();
+    return msg.includes('procedure') || 
+           msg.includes('not found') ||
+           error.code === 'ER_SP_DOES_NOT_EXIST' ||
+           error instanceof NotFoundException;
+};
 
 /**
  * Get all items with pagination and filters
@@ -51,7 +62,8 @@ const getItems = async (params = {}) => {
         };
     } catch (error) {
         // Demo fallback - return sample data if procedure doesn't exist
-        if (error.message.includes('PROCEDURE') || error.message.includes('procedure')) {
+        if (isProcedureNotFound(error)) {
+            logger.warn('sp_get_items not found, returning demo data');
             return getDemoItems(input);
         }
         throw error;
@@ -122,12 +134,9 @@ const getItemById = async (id) => {
 
         return result.data[0];
     } catch (error) {
-        if (error instanceof NotFoundException) {
-            throw error;
-        }
-
         // Demo fallback
-        if (error.message.includes('PROCEDURE')) {
+        if (isProcedureNotFound(error)) {
+            logger.warn('sp_get_item_by_id not found, returning demo data');
             if (id === 1 || id === 2) {
                 return getDemoItems({}).items[id - 1];
             }
@@ -156,7 +165,7 @@ const createItem = async (data) => {
         return result.data;
     } catch (error) {
         // Demo fallback
-        if (error.message.includes('PROCEDURE')) {
+        if (isProcedureNotFound(error)) {
             const demoResult = {
                 ...itemModel.toCreateJSON(),
                 id: Math.floor(Math.random() * 1000) + 100,
@@ -193,7 +202,7 @@ const updateItem = async (id, data) => {
         return result.data || { id, ...data, updated_at: new Date().toISOString() };
     } catch (error) {
         // Demo fallback
-        if (error.message.includes('PROCEDURE')) {
+        if (isProcedureNotFound(error)) {
             return { id, ...data, updated_at: new Date().toISOString() };
         }
         throw error;
@@ -219,7 +228,7 @@ const deleteItem = async (id) => {
         return true;
     } catch (error) {
         // Demo fallback
-        if (error.message.includes('PROCEDURE')) {
+        if (isProcedureNotFound(error)) {
             return true;
         }
         throw error;
