@@ -9,15 +9,31 @@ import { useTabStore } from '../../lib';
 import { DashboardPage } from '../../modules/dashboard';
 import { ItemsListPage, CountriesPage } from '../../modules/inventory';
 import { CategoriesPage } from '../../modules/categories';
+import { CountryMasterPage, CityMasterPage, StateMasterPage } from '../../modules/masters';
 import { Sparkles } from 'lucide-react';
 
-// Component mapping
+// Component mapping — keys must match item.id from the sidebar menu API
 const componentMap = {
+  // Dashboard
   dashboard: DashboardPage,
   Dashboard: DashboardPage,
+
+  // Inventory
   items: ItemsListPage,
   countries: CountriesPage,
   categories: CategoriesPage,
+
+  // Masters
+  country_master: CountryMasterPage,
+  'Country Master': CountryMasterPage,
+  CountryMaster: CountryMasterPage,
+  city_master: CityMasterPage,
+  'City Master': CityMasterPage,
+  CityMaster: CityMasterPage,
+  state_master: StateMasterPage,
+  'State Master': StateMasterPage,
+  StateMaster: StateMasterPage,
+
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">
       <Sparkles size={48} className="mb-3 text-secondary" />
