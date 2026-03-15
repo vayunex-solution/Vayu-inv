@@ -23,16 +23,10 @@ const componentMap = {
   countries: CountriesPage,
   categories: CategoriesPage,
 
-  // Masters
-  country_master: CountryMasterPage,
-  'Country Master': CountryMasterPage,
-  CountryMaster: CountryMasterPage,
-  city_master: CityMasterPage,
-  'City Master': CityMasterPage,
-  CityMaster: CityMasterPage,
-  state_master: StateMasterPage,
-  'State Master': StateMasterPage,
-  StateMaster: StateMasterPage,
+  // Masters — DB menu_key is UPPERCASE
+  COUNTRY_MASTER: CountryMasterPage,
+  CITY_MASTER: CityMasterPage,
+  STATE_MASTER: StateMasterPage,
 
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">
