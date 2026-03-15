@@ -74,7 +74,14 @@ const Sidebar = ({ show, onHide }) => {
       try {
         const response = await apiClient.get('/api/v1/admin/menus/tree');
         // Handle both standard response format and direct array
-        setMenuData(response.data || response || []);
+        const menuItems = response.data || response || [];
+        setMenuData(menuItems);
+        // DEBUG: Log all menu keys so we can fix componentMap
+        const logItems = (items, level = 0) => items.forEach(m => {
+          console.log(`${'  '.repeat(level)}[MENU] id="${m.id}" title="${m.title}" url="${m.url}"`);
+          if (m.children?.length) logItems(m.children, level + 1);
+        });
+        logItems(Array.isArray(menuItems) ? menuItems : []);
       } catch (error) {
         console.error('Failed to fetch menu:', error);
       } finally {
