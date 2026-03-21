@@ -1,96 +1,84 @@
-# 🚀 Vayunex Universal Integration Framework
+# 🚀 Universal Module Integration Framework
 
-This guide defines the standardized process for syncing, verifying, and deploying *any* new module or API feature (e.g., Masters, Reports, Auth, Transactional etc.) to the Vayunex ecosystem.
+This guide defines the standardized process for syncing, verifying, and deploying *any* new feature or API from a remote repository into the local project environment.
 
 ---
 
-## 1. Universal Git Sync Strategy
-**Objective:** Pull specific technical components (Logic & Schema) without affecting core configurations (`package.json`, `.env`, `.cpanel.yml`).
+## 1. Abstract Git Sync Strategy
+**Objective:** Pull specific technical components (Logic & Schema) without affecting core project configurations.
 
 1.  **Fetch & Discover:**
     ```bash
-    git fetch upstream
-    # List files in the target branch to see the structure
-    git ls-tree -r upstream/<TARGET_BRANCH>
+    git fetch <REMOTE_NAME>
+    # List files in the target branch to understand structure
+    git ls-tree -r <REMOTE_NAME>/<TARGET_BRANCH>
     ```
 2.  **Isolated Checkout (Cherry-pick Mode):**
-    Always checkout individual files to prevent merge conflicts in unrelated files.
+    Always checkout individual files to prevent merge conflicts in shared configuration files.
     ```bash
-    git checkout upstream/<TARGET_BRANCH> -- <FILE_PATH_1> <FILE_PATH_2> ...
+    git checkout <REMOTE_NAME>/<TARGET_BRANCH> -- <FILE_PATH_1> <FILE_PATH_2>
     ```
-3.  **Conflict Avoidance:** If a file exists locally, check the diff before overwrite:
+3.  **Conflict Avoidance:** Before overwriting, check the differences:
     ```bash
-    git diff HEAD upstream/<TARGET_BRANCH> -- <FILE_PATH>
+    git diff HEAD <REMOTE_NAME>/<TARGET_BRANCH> -- <FILE_PATH>
     ```
 
 ---
 
 ## 2. Backend Implementation Standards
-**Objective:** Maintain a strict N-tier architecture for scalability.
+**Objective:** Maintain a strict layered architecture for scalability.
 
-1.  **Route Registration (`src/app.js`):**
-    Ensure all new controllers are registered under the correct API version prefix (`/api/v1/...`).
+1.  **Route Registration:**
+    Ensure all new logic is registered under the project's primary entry point (e.g., `app.js` or `main.js`).
 2.  **Environmental Parity:**
-    Always check `.env` for new database variables or third-party keys required by the new module.
-3.  **Universal API Testing (PowerShell):**
-    Test raw JSON output before frontend development:
-    ```powershell
-    # Standard Login & Token Retrieval
-    $login = Invoke-RestMethod -Uri "http://localhost:3002/api/v1/auth/login" -Method POST -Body '{"email":"admin@yahoo.com","password":"admin@123"}' -ContentType "application/json"
-    $token = $login.data.accessToken
-
-    # Test Any GET/POST Endpoint
-    Invoke-RestMethod -Uri "http://localhost:3002/api/v1/inventory/<ENDPOINT_NAME>" -Headers @{Authorization="Bearer $token"} | ConvertTo-Json
+    Verify if the new module requires new variables (DB keys, API secrets) in the local environment file.
+3.  **Cross-Platform API Testing:**
+    Test raw JSON output efficiently via terminal:
+    ```bash
+    # Step 1: Authentication (if required)
+    # Step 2: Test Endpoint
+    Invoke-RestMethod -Uri "<LOCAL_URL>/<ENDPOINT>" -Headers @{Authorization="Bearer <TOKEN>"} | ConvertTo-Json
     ```
 
 ---
 
-## 3. Frontend Architecture (Universal API Connectivity)
-**Objective:** Consistent data handling using `apiClient`.
+## 3. Frontend Architecture (Universal Connectivity)
+**Objective:** Consistent data handling using a central API client.
 
 ### A. Generic Service Pattern
-**CRITICAL:** `apiClient` returns the response body directly. Use a defensive data extraction pattern.
+**CRITICAL:** API clients often unwrap response bodies. Use a defensive data extraction pattern.
 ```javascript
-// Path: vayunex-ui/src/modules/<MODULE>/services/<NAME>Service.js
-export const fetchModuleData = async (params) => {
-    const res = await apiClient.get('/api/v1/<PATH>', { params });
+export const fetchData = async (params) => {
+    const res = await apiClient.get('/<ENDPOINT_PATH>', { params });
     return {
         success: true,
-        data: res.data || res || [], // UNIVERSAL FIX: Handles both manual and automatic unwrapping
+        data: res.data || res || [], // Handles both manual and automatic unwrapping
         totalRecords: res.totalRecords || 0
     };
 };
 ```
 
-### B. UI Grid/Form Pattern
-*   Use `react-bootstrap` for layout.
-*   Use `lucide-react` for iconography.
-*   Implement **inline double-click editing** for all "Master" type pages for premium UX.
-*   **Data Binding:** Always mirror the backend JSON keys (e.g., `StateId`, `CountryId`) in the frontend state.
+### B. UI Component Pattern
+*   **Consistency:** Mirror the backend JSON keys in the frontend state.
+*   **Design:** Implement intuitive editing features (e.g., inline editing, double-click actions) for a premium user experience.
 
 ---
 
-## 4. Total Deployment Flow (Local to Production)
+## 4. Deployment Flow (Source to Production)
 
-1.  **Local Sync:** Commit all code changes.
-2.  **Production Build:** (Mandatory for React changes)
-    ```bash
-    cd vayunex-ui; npm run build; cd ..
-    ```
-3.  **Global Push:**
-    ```bash
-    git add .; git commit -m "feat: Integrated <MODULE_NAME>"; git push origin main
-    ```
-4.  **cPanel Deployment:**
-    *   **Login SSH:** `git reset --hard HEAD` (Purge server-side dirty files).
-    *   **cPanel UI:** Click **Deploy HEAD Commit**.
-    *   **Server Restart:** Restart Node.js app to apply `app.js` changes.
+1.  **Local Sync:** Commit all code changes to the primary development branch.
+2.  **Production Build:** Always generate a fresh production bundle after frontend changes.
+3.  **Global Push:** Push code to the centralized deployment repository.
+4.  **Production Sync:**
+    *   **State Reset:** Purge any "dirty" or modified files on the production server.
+    *   **Deployment:** Pull the latest commit and execute deployment tasks.
+    *   **Application Cycle:** Restart the application service to apply core logic changes.
 
 ---
 
 ## 🧠 Architectural Integrity Check
--   [ ] Are routes registered in `app.js`?
--   [ ] Does the API return `success: true`?
--   [ ] Is the frontend talking to the production `inv-api` URL?
--   [ ] Did you run a fresh build for `.dist` folder?
--   [ ] Did you restart the server on cPanel?
+-   [ ] Are new routes/services registered correctly?
+-   [ ] Does the API return a standardized success response?
+-   [ ] Is the frontend talking to the correct production endpoint?
+-   [ ] Did you generate a fresh production build?
+-   [ ] Did you restart the production server service?
