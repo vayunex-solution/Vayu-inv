@@ -1,374 +1,312 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, Table, Button, Form, Row, Col, Badge, InputGroup, Dropdown, Spinner } from 'react-bootstrap';
-import { Plus, Search, Edit2, Check, X, Calendar } from 'lucide-react';
-import * as fyService from '../../inventory/services/fyService';
-
+// src/modules/masters/pages/FyMasterPage.jsx
+import { useState, useEffect, useCallback } from 'react';
+import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Modal } from 'react-bootstrap';
+import { Plus, Search, Edit, Trash2, Check, X, Calendar, RefreshCw } from 'lucide-react';
+import { apiClient } from '../../../lib';
 
 const FyMasterPage = () => {
   const [fys, setFys] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
-  
-  // Inline Add State
-  const [isAdding, setIsAdding] = useState(false);
-  const [newFy, setNewFy] = useState({ FYNAME: '', IsActive: 'Y', ISCURRENTFY: 'N' });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const addInputRef = useRef(null);
-
-  // Inline Edit State
   const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState({ FYNAME: '', IsActive: 'Y', ISCURRENTFY: 'N' });
+  const [editForm, setEditForm] = useState({});
+  const [savingId, setSavingId] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({ fy_name: '', fy_st_date: '', fy_end_date: '', is_current_fy: 'N' });
+  const [addSaving, setAddSaving] = useState(false);
+  const [alert, setAlert] = useState(null);
 
-  useEffect(() => {
-    fetchFys();
-  }, [search]);
+  const showAlert = (msg, type = 'success') => {
+    setAlert({ msg, type });
+    setTimeout(() => setAlert(null), 3000);
+  };
 
-  useEffect(() => {
-    if (isAdding && addInputRef.current) {
-      addInputRef.current.focus();
-    }
-  }, [isAdding]);
-
-  const fetchFys = async () => {
+  const fetchFys = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (search) params.append('search', search);
-
-      const res = await fyService.getFys(params);
-      if (res.success) {
-        setFys(res.data);
-      } else {
-        setError(res.message);
-        alert('Failed to load financial years');
-      }
+      const res = await apiClient.get('/api/v1/inventory/fy');
+      const data = res.data || res || [];
+      const filtered = search
+        ? data.filter(f => (f.FyName || '').toLowerCase().includes(search.toLowerCase()))
+        : data;
+      setFys(filtered);
     } catch (err) {
-      setError('An error occurred while loading data');
-      alert('Error connecting to server');
+      showAlert(err.response?.data?.message || 'Failed to load financial years', 'danger');
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
-  const handleStartAdd = () => {
-    setIsAdding(true);
-    setNewFy({ FYNAME: '', IsActive: 'Y', ISCURRENTFY: 'N' });
-  };
-
-  const handleCancelAdd = () => {
-    setIsAdding(false);
-    setNewFy({ FYNAME: '', IsActive: 'Y', ISCURRENTFY: 'N' });
-  };
-
-  const handleSaveAdd = async () => {
-    if (!newFy.FYNAME.trim()) {
-      alert('Financial Year Name is required (e.g. 2025-26)');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      const res = await fyService.createFy({
-        fyName: newFy.FYNAME.trim(),
-        isActive: newFy.IsActive,
-        isCurrentFy: newFy.ISCURRENTFY
-      });
-
-      if (res.success) {
-        alert('Financial Year added successfully');
-        setIsAdding(false);
-        fetchFys();
-      } else {
-        alert(res.message || 'Failed to add financial year');
-      }
-    } catch (err) {
-      alert('Error adding financial year');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  useEffect(() => { fetchFys(); }, [fetchFys]);
 
   const handleDoubleClick = (fy) => {
-    setEditingId(fy.FYID);
-    setEditData({ FYNAME: fy.FYNAME, IsActive: fy.IsActive || 'Y', ISCURRENTFY: fy.ISCURRENTFY || 'N' });
+    setEditingId(fy.FyId);
+    setEditForm({
+      fy_name: fy.FyName,
+      fy_st_date: fy.FyStDate ? fy.FyStDate.substring(0, 10) : '',
+      fy_end_date: fy.FyEndDate ? fy.FyEndDate.substring(0, 10) : '',
+      is_current_fy: fy.IsCurrentFy || 'N',
+    });
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-  };
+  const cancelEdit = () => { setEditingId(null); setEditForm({}); };
 
-  const handleSaveEdit = async (id) => {
-    if (!editData.FYNAME.trim()) {
-      alert('Financial Year Name is required');
-      return;
-    }
-
+  const saveEdit = async (id) => {
+    setSavingId(id);
     try {
-      const res = await fyService.updateFy(id, {
-        fyName: editData.FYNAME.trim(),
-        isActive: editData.IsActive,
-        isCurrentFy: editData.ISCURRENTFY
-      });
-
-      if (res.success) {
-        alert('Financial Year updated successfully');
-        setEditingId(null);
-        fetchFys();
-      } else {
-        alert(res.message || 'Failed to update financial year');
-      }
+      setFys(prev => prev.map(f =>
+        f.FyId === id ? { ...f, FyName: editForm.fy_name, IsCurrentFy: editForm.is_current_fy } : f
+      ));
+      await apiClient.put(`/api/v1/inventory/fy/${id}`, editForm);
+      showAlert('Financial Year updated successfully');
     } catch (err) {
-      alert('Error updating financial year');
+      fetchFys();
+      showAlert(err.response?.data?.message || 'Update failed', 'danger');
+    } finally {
+      setSavingId(null);
+      setEditingId(null);
     }
   };
 
-  let displayData = fys || [];
-  if (search) {
-      displayData = displayData.filter(f => 
-          (f.FYNAME || '').toLowerCase().includes(search.toLowerCase())
-      );
-  }
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this financial year?')) return;
+    const prev = [...fys];
+    setFys(fys.filter(f => f.FyId !== id));
+    try {
+      await apiClient.delete(`/api/v1/inventory/fy/${id}`);
+      showAlert('Financial Year deleted');
+    } catch (err) {
+      setFys(prev);
+      showAlert(err.response?.data?.message || 'Delete failed', 'danger');
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!addForm.fy_name.trim() || !addForm.fy_st_date || !addForm.fy_end_date) {
+      showAlert('FY Name, Start Date and End Date are required', 'danger'); return;
+    }
+    setAddSaving(true);
+    try {
+      await apiClient.post('/api/v1/inventory/fy', addForm);
+      setShowAddModal(false);
+      setAddForm({ fy_name: '', fy_st_date: '', fy_end_date: '', is_current_fy: 'N' });
+      fetchFys();
+      showAlert('Financial Year added successfully');
+    } catch (err) {
+      showAlert(err.response?.data?.message || 'Failed to add financial year', 'danger');
+    } finally {
+      setAddSaving(false);
+    }
+  };
+
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
   return (
-    <>
-      <div className="container-fluid py-4" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h2 className="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
-              <Calendar size={28} className="text-primary" />
-              Financial Year Master
-            </h2>
-            <p className="text-muted mb-0">Manage accounting periods with inline editing</p>
-          </div>
-          
-          <Button 
-            variant="primary" 
-            className="rounded-pill px-4 shadow-sm d-flex align-items-center gap-2 transition-all hover-lift"
-            onClick={handleStartAdd}
-            disabled={isAdding}
-          >
+    <div className="container-fluid p-0">
+      {alert && (
+        <div className={`alert alert-${alert.type} alert-dismissible position-fixed top-0 end-0 m-3 shadow`} style={{ zIndex: 9999 }}>
+          {alert.msg}
+        </div>
+      )}
+
+      <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+        <div>
+          <h4 className="fw-bold mb-1" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            Financial Year Master
+          </h4>
+          <p className="text-muted small mb-0">{fys.length} financial years configured</p>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="light" size="sm" className="rounded-pill" onClick={fetchFys} title="Refresh">
+            <RefreshCw size={16} />
+          </Button>
+          <Button className="d-flex align-items-center gap-2 rounded-pill shadow-sm text-white" onClick={() => setShowAddModal(true)}
+            style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none' }}>
             <Plus size={18} /> Add FY
           </Button>
         </div>
-
-        <Card className="border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-          <Card.Body className="p-4">
-            <Row className="g-3 align-items-center bg-light p-3 rounded-3 mb-4">
-              <Col xs={12} md={6}>
-                <InputGroup className="border-0 shadow-sm rounded-pill overflow-hidden bg-white">
-                  <InputGroup.Text className="bg-transparent border-0 pe-2">
-                    <Search size={18} className="text-muted" />
-                  </InputGroup.Text>
-                  <Form.Control
-                    placeholder="Search financial year (e.g., 2025)..."
-                    className="border-0 shadow-none ps-0"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </InputGroup>
-              </Col>
-            </Row>
-
-            <div className="table-responsive">
-              <Table hover className="align-middle mb-0 custom-table">
-                <thead className="bg-light">
-                  <tr>
-                    <th className="py-3 text-secondary ps-4" style={{ width: '30%' }}>Financial Year</th>
-                    <th className="py-3 text-secondary text-center" style={{ width: '20%' }}>Current FY</th>
-                    <th className="py-3 text-secondary text-center" style={{ width: '20%' }}>Status</th>
-                    <th className="py-3 text-secondary text-end pe-4" style={{ width: '30%' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isAdding && (
-                    <tr className="bg-primary bg-opacity-10 add-row-animation">
-                      <td className="ps-4">
-                        <Form.Control
-                          ref={addInputRef}
-                          autoFocus
-                          placeholder="e.g. 2025-26"
-                          value={newFy.FYNAME}
-                          onChange={(e) => setNewFy({ ...newFy, FYNAME: e.target.value })}
-                          className="shadow-sm border-primary"
-                          onKeyDown={(e) => e.key === 'Enter' && handleSaveAdd()}
-                        />
-                      </td>
-                      <td className="text-center">
-                        <Dropdown>
-                            <Dropdown.Toggle variant={newFy.ISCURRENTFY === 'Y' ? 'outline-primary' : 'outline-secondary'} size="sm" className="rounded-pill w-100 fw-bold">
-                                {newFy.ISCURRENTFY === 'Y' ? 'Current FY' : 'Not Current'}
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu className="shadow-sm rounded-3">
-                                <Dropdown.Item onClick={() => setNewFy({...newFy, ISCURRENTFY: 'Y'})}>Set as Current FY</Dropdown.Item>
-                                <Dropdown.Item onClick={() => setNewFy({...newFy, ISCURRENTFY: 'N'})}>Not Current</Dropdown.Item>
-                            </Dropdown.Menu>
-                        </Dropdown>
-                      </td>
-                      <td className="text-center">
-                        <Dropdown>
-                            <Dropdown.Toggle variant={newFy.IsActive === 'Y' ? 'outline-success' : 'outline-danger'} size="sm" className="rounded-pill w-100 fw-bold">
-                                {newFy.IsActive === 'Y' ? 'Active' : 'Inactive'}
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu className="shadow-sm rounded-3">
-                                <Dropdown.Item onClick={() => setNewFy({...newFy, IsActive: 'Y'})}>Active</Dropdown.Item>
-                                <Dropdown.Item onClick={() => setNewFy({...newFy, IsActive: 'N'})}>Inactive</Dropdown.Item>
-                            </Dropdown.Menu>
-                        </Dropdown>
-                      </td>
-                      <td className="text-end pe-4">
-                        <div className="d-flex justify-content-end gap-2">
-                          <Button 
-                            variant="success" 
-                            size="sm" 
-                            className="rounded-circle d-flex align-items-center justify-content-center p-2 shadow-sm"
-                            onClick={handleSaveAdd}
-                            disabled={isSubmitting}
-                          >
-                            {isSubmitting ? <Spinner animation="border" size="sm" /> : <Check size={16} />}
-                          </Button>
-                          <Button 
-                            variant="light" 
-                            size="sm" 
-                            className="rounded-circle d-flex align-items-center justify-content-center p-2 border shadow-sm text-danger"
-                            onClick={handleCancelAdd}
-                            disabled={isSubmitting}
-                          >
-                            <X size={16} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-
-                  {loading && !isAdding && fys.length === 0 ? (
-                    <tr>
-                      <td colSpan="4" className="text-center py-5">
-                        <Spinner animation="border" variant="primary" />
-                        <p className="text-muted mt-2 mb-0">Loading financial years...</p>
-                      </td>
-                    </tr>
-                  ) : displayData.length === 0 && !isAdding ? (
-                    <tr>
-                      <td colSpan="4" className="text-center py-5">
-                        <img src="https://cdni.iconscout.com/illustration/premium/thumb/folder-is-empty-illustration-download-in-svg-png-gif-file-formats--no-data-record-miscellaneous-pack-illustrations-3112448.png" alt="No Data" style={{ width: '150px', opacity: 0.6 }} />
-                        <h5 className="mt-3 text-muted">No FY Data Found</h5>
-                        <p className="text-muted mb-3">Add a new financial year to get started.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    displayData.map((fy) => (
-                      <tr 
-                        key={fy.FYID}
-                        onDoubleClick={() => handleDoubleClick(fy)}
-                        className={editingId === fy.FYID ? 'bg-light' : 'cursor-pointer hover-bg-light transition-all'}
-                      >
-                        <td className="ps-4">
-                          {editingId === fy.FYID ? (
-                            <Form.Control
-                              autoFocus
-                              value={editData.FYNAME}
-                              onChange={(e) => setEditData({ ...editData, FYNAME: e.target.value })}
-                              className="shadow-sm border-primary"
-                              onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(fy.FYID)}
-                            />
-                          ) : (
-                            <span className="fw-medium text-dark">{fy.FYNAME}</span>
-                          )}
-                        </td>
-                        <td className="text-center">
-                          {editingId === fy.FYID ? (
-                             <Dropdown>
-                                <Dropdown.Toggle variant={editData.ISCURRENTFY === 'Y' ? 'outline-primary' : 'outline-secondary'} size="sm" className="rounded-pill w-100 fw-bold">
-                                    {editData.ISCURRENTFY === 'Y' ? 'Current FY' : 'Not Current'}
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu className="shadow-sm rounded-3">
-                                    <Dropdown.Item onClick={() => setEditData({...editData, ISCURRENTFY: 'Y'})}>Set as Current FY</Dropdown.Item>
-                                    <Dropdown.Item onClick={() => setEditData({...editData, ISCURRENTFY: 'N'})}>Not Current</Dropdown.Item>
-                                </Dropdown.Menu>
-                            </Dropdown>
-                          ) : (
-                            <Badge 
-                              bg={fy.ISCURRENTFY === 'Y' ? 'primary' : 'secondary'} 
-                              className="rounded-pill px-3 py-2 fw-medium bg-opacity-10"
-                            >
-                              {fy.ISCURRENTFY === 'Y' ? 'Current FY' : 'Standard FY'}
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="text-center">
-                          {editingId === fy.FYID ? (
-                             <Dropdown>
-                                <Dropdown.Toggle variant={editData.IsActive === 'Y' ? 'outline-success' : 'outline-danger'} size="sm" className="rounded-pill w-100 fw-bold">
-                                    {editData.IsActive === 'Y' ? 'Active' : 'Inactive'}
-                                </Dropdown.Toggle>
-                                <Dropdown.Menu className="shadow-sm rounded-3">
-                                    <Dropdown.Item onClick={() => setEditData({...editData, IsActive: 'Y'})}>Active</Dropdown.Item>
-                                    <Dropdown.Item onClick={() => setEditData({...editData, IsActive: 'N'})}>Inactive</Dropdown.Item>
-                                </Dropdown.Menu>
-                            </Dropdown>
-                          ) : (
-                            <Badge 
-                              bg={fy.IsActive === 'Y' ? 'success' : 'danger'} 
-                              className="rounded-pill px-3 py-2 fw-medium bg-opacity-10"
-                            >
-                              {fy.IsActive === 'Y' ? 'Active' : 'Inactive'}
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="text-end pe-4">
-                          {editingId === fy.FYID ? (
-                            <div className="d-flex justify-content-end gap-2">
-                              <Button 
-                                variant="success" 
-                                size="sm" 
-                                className="rounded-circle d-flex align-items-center justify-content-center p-2 shadow-sm"
-                                onClick={() => handleSaveEdit(fy.FYID)}
-                              >
-                                <Check size={16} />
-                              </Button>
-                              <Button 
-                                variant="light" 
-                                size="sm" 
-                                className="rounded-circle d-flex align-items-center justify-content-center p-2 border shadow-sm text-danger"
-                                onClick={handleCancelEdit}
-                              >
-                                <X size={16} />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="d-flex align-items-center justify-content-end gap-3 opacity-50 hover-opacity-100 transition-all">
-                                <span className="text-muted small d-none d-md-inline-flex align-items-center gap-1">
-                                    <Edit2 size={12} /> Double-click to edit
-                                </span>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </Table>
-            </div>
-          </Card.Body>
-        </Card>
       </div>
 
-      <style>{`
-        .hover-lift:hover { transform: translateY(-2px); }
-        .transition-all { transition: all 0.2s ease-in-out; }
-        .cursor-pointer { cursor: pointer; }
-        .hover-bg-light:hover { background-color: #f8f9fa !important; }
-        .custom-table th { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #e9ecef; }
-        .custom-table td { border-bottom: 1px solid #f1f3f5; }
-        .add-row-animation { animation: slideDown 0.3s ease-out; }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .hover-opacity-100:hover { opacity: 1 !important; }
-      `}</style>
-    </>
+      <Card className="border-0 shadow-sm mb-4" style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)' }}>
+        <Card.Body className="py-3">
+          <Row className="g-2">
+            <Col xs={12} md={8}>
+              <InputGroup>
+                <InputGroup.Text className="bg-transparent border-end-0"><Search size={16} className="text-muted" /></InputGroup.Text>
+                <Form.Control
+                  placeholder="Search by financial year name..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="bg-transparent border-start-0 shadow-none"
+                />
+                {search && <Button variant="light" onClick={() => setSearch('')}><X size={14} /></Button>}
+              </InputGroup>
+            </Col>
+            <Col xs={12} md={4}>
+              <Button variant="outline-secondary" className="w-100 rounded-pill" onClick={() => setSearch('')}>
+                Clear Filters
+              </Button>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
+
+      <Card className="border-0 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="d-flex align-items-center justify-content-center p-5">
+            <Spinner animation="border" style={{ color: '#f59e0b' }} />
+          </div>
+        ) : fys.length === 0 ? (
+          <div className="text-center p-5 text-muted">
+            <Calendar size={48} className="mb-3 opacity-25" />
+            <p>No financial years found. Click "Add FY" to get started.</p>
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <Table hover className="align-middle mb-0 d-none d-md-table">
+              <thead className="table-light">
+                <tr>
+                  <th className="border-0">#</th>
+                  <th className="border-0">FY Name</th>
+                  <th className="border-0">Start Date</th>
+                  <th className="border-0">End Date</th>
+                  <th className="border-0 text-center">Current FY</th>
+                  <th className="border-0 text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fys.map((f, idx) => {
+                  const editing = editingId === f.FyId;
+                  return (
+                    <tr key={f.FyId} onDoubleClick={() => !editing && handleDoubleClick(f)}
+                        style={{ cursor: editing ? 'default' : 'pointer' }}
+                        className={editing ? 'table-warning bg-opacity-25' : ''}
+                        title={!editing ? 'Double-click to edit' : ''}>
+                      <td className="text-muted small">{idx + 1}</td>
+                      <td>
+                        <div className="d-flex align-items-center gap-2">
+                          <div className="rounded-circle d-flex align-items-center justify-content-center"
+                            style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #f59e0b20, #d9770620)' }}>
+                            <Calendar size={16} style={{ color: '#f59e0b' }} />
+                          </div>
+                          {editing
+                            ? <Form.Control size="sm" value={editForm.fy_name} onChange={e => setEditForm(f => ({ ...f, fy_name: e.target.value }))} autoFocus />
+                            : <span className="fw-semibold">{f.FyName}</span>}
+                        </div>
+                      </td>
+                      <td>
+                        {editing
+                          ? <Form.Control type="date" size="sm" style={{ width: 150 }} value={editForm.fy_st_date} onChange={e => setEditForm(form => ({ ...form, fy_st_date: e.target.value }))} />
+                          : <span className="small">{formatDate(f.FyStDate)}</span>}
+                      </td>
+                      <td>
+                        {editing
+                          ? <Form.Control type="date" size="sm" style={{ width: 150 }} value={editForm.fy_end_date} onChange={e => setEditForm(form => ({ ...form, fy_end_date: e.target.value }))} />
+                          : <span className="small">{formatDate(f.FyEndDate)}</span>}
+                      </td>
+                      <td className="text-center">
+                        {editing
+                          ? <Form.Select size="sm" style={{ width: 110 }} value={editForm.is_current_fy} onChange={e => setEditForm(form => ({ ...form, is_current_fy: e.target.value }))}>
+                              <option value="Y">Yes</option>
+                              <option value="N">No</option>
+                            </Form.Select>
+                          : <Badge bg={f.IsCurrentFy === 'Y' ? 'warning' : 'secondary'} text={f.IsCurrentFy === 'Y' ? 'dark' : 'white'} className="fw-normal rounded-pill px-3">
+                              {f.IsCurrentFy === 'Y' ? 'Current' : 'Past'}
+                            </Badge>}
+                      </td>
+                      <td className="text-end">
+                        {editing ? (
+                          <div className="d-flex justify-content-end gap-1">
+                            <Button size="sm" variant="warning" onClick={() => saveEdit(f.FyId)} disabled={savingId === f.FyId} className="rounded-circle p-1 text-white" style={{ width: 28, height: 28 }}>
+                              {savingId === f.FyId ? <Spinner size="sm" animation="border" /> : <Check size={14} />}
+                            </Button>
+                            <Button size="sm" variant="danger" onClick={cancelEdit} className="rounded-circle p-1" style={{ width: 28, height: 28 }}>
+                              <X size={14} />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="d-flex justify-content-end gap-1">
+                            <Button size="sm" variant="light" className="rounded-circle p-1" style={{ width: 28, height: 28 }} onClick={() => handleDoubleClick(f)}>
+                              <Edit size={14} className="text-muted" />
+                            </Button>
+                            <Button size="sm" variant="light" className="rounded-circle p-1" style={{ width: 28, height: 28 }} onClick={() => handleDelete(f.FyId)}>
+                              <Trash2 size={14} className="text-danger" />
+                            </Button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+
+            {/* Mobile */}
+            <div className="d-block d-md-none">
+              {fys.map(f => {
+                const editing = editingId === f.FyId;
+                return (
+                  <div key={f.FyId} className={`p-3 border-bottom ${editing ? 'bg-warning bg-opacity-10' : ''}`} onDoubleClick={() => !editing && handleDoubleClick(f)}>
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <div className="d-flex align-items-center gap-2">
+                        <Calendar size={18} style={{ color: '#f59e0b' }} />
+                        <span className="fw-semibold">{f.FyName}</span>
+                      </div>
+                      <Badge bg={f.IsCurrentFy === 'Y' ? 'warning' : 'secondary'} text={f.IsCurrentFy === 'Y' ? 'dark' : 'white'}>
+                        {f.IsCurrentFy === 'Y' ? 'Current' : 'Past'}
+                      </Badge>
+                    </div>
+                    <div className="small text-muted mb-2">{formatDate(f.FyStDate)} → {formatDate(f.FyEndDate)}</div>
+                    <div className="d-flex gap-2">
+                      <Button size="sm" variant="light" className="flex-fill" onClick={() => handleDoubleClick(f)}><Edit size={14} className="me-1" />Edit</Button>
+                      <Button size="sm" variant="light" className="flex-fill text-danger" onClick={() => handleDelete(f.FyId)}><Trash2 size={14} className="me-1" />Delete</Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Card>
+      <div className="text-center mt-3"><small className="text-muted">✨ Double-click any row to quick edit</small></div>
+
+      {/* Add FY Modal */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">Add Financial Year</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-medium">FY Name <span className="text-danger">*</span></Form.Label>
+              <Form.Control placeholder="e.g. 2025-26" value={addForm.fy_name} onChange={e => setAddForm(f => ({ ...f, fy_name: e.target.value }))} />
+            </Form.Group>
+            <Row className="g-3 mb-3">
+              <Col xs={6}>
+                <Form.Label className="fw-medium">Start Date <span className="text-danger">*</span></Form.Label>
+                <Form.Control type="date" value={addForm.fy_st_date} onChange={e => setAddForm(f => ({ ...f, fy_st_date: e.target.value }))} />
+              </Col>
+              <Col xs={6}>
+                <Form.Label className="fw-medium">End Date <span className="text-danger">*</span></Form.Label>
+                <Form.Control type="date" value={addForm.fy_end_date} onChange={e => setAddForm(f => ({ ...f, fy_end_date: e.target.value }))} />
+              </Col>
+            </Row>
+            <Form.Group className="mb-3">
+              <Form.Check type="switch" label="Mark as Current FY"
+                checked={addForm.is_current_fy === 'Y'}
+                onChange={e => setAddForm(f => ({ ...f, is_current_fy: e.target.checked ? 'Y' : 'N' }))} />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button variant="light" className="rounded-pill px-4" onClick={() => setShowAddModal(false)}>Cancel</Button>
+          <Button className="rounded-pill px-4 text-white" onClick={handleAdd} disabled={addSaving}
+            style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none' }}>
+            {addSaving ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : 'Add FY'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </div>
   );
 };
 
