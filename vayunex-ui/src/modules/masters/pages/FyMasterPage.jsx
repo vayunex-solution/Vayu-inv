@@ -27,7 +27,9 @@ const FyMasterPage = () => {
       const res = await apiClient.get('/api/v1/inventory/fy');
       const data = res.data || res || [];
       const filtered = search
-        ? data.filter(f => (f.FyName || '').toLowerCase().includes(search.toLowerCase()))
+        ? data.filter(f => 
+            (f.FYNAME || f.FyName || f.fy_name || '').toLowerCase().includes(search.toLowerCase())
+          )
         : data;
       setFys(filtered);
     } catch (err) {
@@ -40,12 +42,12 @@ const FyMasterPage = () => {
   useEffect(() => { fetchFys(); }, [fetchFys]);
 
   const handleDoubleClick = (fy) => {
-    setEditingId(fy.FyId);
+    setEditingId(fy.FYID || fy.FyId);
     setEditForm({
-      fy_name: fy.FyName,
-      fy_st_date: fy.FyStDate ? fy.FyStDate.substring(0, 10) : '',
-      fy_end_date: fy.FyEndDate ? fy.FyEndDate.substring(0, 10) : '',
-      is_current_fy: fy.IsCurrentFy || 'N',
+      fy_name: fy.FYNAME || fy.FyName || fy.fy_name || '',
+      fy_st_date: (fy.FYSTDATE || fy.FyStDate || fy.fy_st_date || '').substring(0, 10),
+      fy_end_date: (fy.FYENDDATE || fy.FyEndDate || fy.fy_end_date || '').substring(0, 10),
+      is_current_fy: fy.ISCURRENTFY || fy.IsCurrentFy || fy.is_current_fy || 'N',
     });
   };
 
@@ -55,7 +57,7 @@ const FyMasterPage = () => {
     setSavingId(id);
     try {
       setFys(prev => prev.map(f =>
-        f.FyId === id ? { ...f, FyName: editForm.fy_name, IsCurrentFy: editForm.is_current_fy } : f
+        (f.FYID || f.FyId) === id ? { ...f, FYNAME: editForm.fy_name, FyName: editForm.fy_name, ISCURRENTFY: editForm.is_current_fy, IsCurrentFy: editForm.is_current_fy } : f
       ));
       await apiClient.put(`/api/v1/inventory/fy/${id}`, editForm);
       showAlert('Financial Year updated successfully');
@@ -71,7 +73,7 @@ const FyMasterPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this financial year?')) return;
     const prev = [...fys];
-    setFys(fys.filter(f => f.FyId !== id));
+    setFys(fys.filter(f => (f.FYID || f.FyId) !== id));
     try {
       await apiClient.delete(`/api/v1/inventory/fy/${id}`);
       showAlert('Financial Year deleted');
@@ -99,7 +101,14 @@ const FyMasterPage = () => {
     }
   };
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+  // Helper to read field regardless of case from SP
+  const fyName = (f) => f.FYNAME || f.FyName || f.fy_name || '—';
+  const fyStDate = (f) => f.FYSTDATE || f.FyStDate || f.fy_st_date || null;
+  const fyEndDate = (f) => f.FYENDDATE || f.FyEndDate || f.fy_end_date || null;
+  const fyId = (f) => f.FYID || f.FyId || f.fy_id;
+  const isCurrentFy = (f) => f.ISCURRENTFY || f.IsCurrentFy || f.is_current_fy || 'N';
 
   return (
     <div className="container-fluid p-0">
@@ -176,9 +185,10 @@ const FyMasterPage = () => {
               </thead>
               <tbody>
                 {fys.map((f, idx) => {
-                  const editing = editingId === f.FyId;
+                  const fid = fyId(f);
+                  const editing = editingId === fid;
                   return (
-                    <tr key={f.FyId} onDoubleClick={() => !editing && handleDoubleClick(f)}
+                    <tr key={fid} onDoubleClick={() => !editing && handleDoubleClick(f)}
                         style={{ cursor: editing ? 'default' : 'pointer' }}
                         className={editing ? 'table-warning bg-opacity-25' : ''}
                         title={!editing ? 'Double-click to edit' : ''}>
@@ -190,19 +200,19 @@ const FyMasterPage = () => {
                             <Calendar size={16} style={{ color: '#f59e0b' }} />
                           </div>
                           {editing
-                            ? <Form.Control size="sm" value={editForm.fy_name} onChange={e => setEditForm(f => ({ ...f, fy_name: e.target.value }))} autoFocus />
-                            : <span className="fw-semibold">{f.FyName}</span>}
+                            ? <Form.Control size="sm" value={editForm.fy_name} onChange={e => setEditForm(form => ({ ...form, fy_name: e.target.value }))} autoFocus />
+                            : <span className="fw-semibold">{fyName(f)}</span>}
                         </div>
                       </td>
                       <td>
                         {editing
                           ? <Form.Control type="date" size="sm" style={{ width: 150 }} value={editForm.fy_st_date} onChange={e => setEditForm(form => ({ ...form, fy_st_date: e.target.value }))} />
-                          : <span className="small">{formatDate(f.FyStDate)}</span>}
+                          : <span className="small">{formatDate(fyStDate(f))}</span>}
                       </td>
                       <td>
                         {editing
                           ? <Form.Control type="date" size="sm" style={{ width: 150 }} value={editForm.fy_end_date} onChange={e => setEditForm(form => ({ ...form, fy_end_date: e.target.value }))} />
-                          : <span className="small">{formatDate(f.FyEndDate)}</span>}
+                          : <span className="small">{formatDate(fyEndDate(f))}</span>}
                       </td>
                       <td className="text-center">
                         {editing
@@ -210,15 +220,15 @@ const FyMasterPage = () => {
                               <option value="Y">Yes</option>
                               <option value="N">No</option>
                             </Form.Select>
-                          : <Badge bg={f.IsCurrentFy === 'Y' ? 'warning' : 'secondary'} text={f.IsCurrentFy === 'Y' ? 'dark' : 'white'} className="fw-normal rounded-pill px-3">
-                              {f.IsCurrentFy === 'Y' ? 'Current' : 'Past'}
+                          : <Badge bg={isCurrentFy(f) === 'Y' ? 'warning' : 'secondary'} text={isCurrentFy(f) === 'Y' ? 'dark' : 'white'} className="fw-normal rounded-pill px-3">
+                              {isCurrentFy(f) === 'Y' ? 'Current' : 'Past'}
                             </Badge>}
                       </td>
                       <td className="text-end">
                         {editing ? (
                           <div className="d-flex justify-content-end gap-1">
-                            <Button size="sm" variant="warning" onClick={() => saveEdit(f.FyId)} disabled={savingId === f.FyId} className="rounded-circle p-1 text-white" style={{ width: 28, height: 28 }}>
-                              {savingId === f.FyId ? <Spinner size="sm" animation="border" /> : <Check size={14} />}
+                            <Button size="sm" variant="warning" onClick={() => saveEdit(fid)} disabled={savingId === fid} className="rounded-circle p-1 text-white" style={{ width: 28, height: 28 }}>
+                              {savingId === fid ? <Spinner size="sm" animation="border" /> : <Check size={14} />}
                             </Button>
                             <Button size="sm" variant="danger" onClick={cancelEdit} className="rounded-circle p-1" style={{ width: 28, height: 28 }}>
                               <X size={14} />
@@ -229,7 +239,7 @@ const FyMasterPage = () => {
                             <Button size="sm" variant="light" className="rounded-circle p-1" style={{ width: 28, height: 28 }} onClick={() => handleDoubleClick(f)}>
                               <Edit size={14} className="text-muted" />
                             </Button>
-                            <Button size="sm" variant="light" className="rounded-circle p-1" style={{ width: 28, height: 28 }} onClick={() => handleDelete(f.FyId)}>
+                            <Button size="sm" variant="light" className="rounded-circle p-1" style={{ width: 28, height: 28 }} onClick={() => handleDelete(fid)}>
                               <Trash2 size={14} className="text-danger" />
                             </Button>
                           </div>
@@ -244,22 +254,23 @@ const FyMasterPage = () => {
             {/* Mobile */}
             <div className="d-block d-md-none">
               {fys.map(f => {
-                const editing = editingId === f.FyId;
+                const fid = fyId(f);
+                const editing = editingId === fid;
                 return (
-                  <div key={f.FyId} className={`p-3 border-bottom ${editing ? 'bg-warning bg-opacity-10' : ''}`} onDoubleClick={() => !editing && handleDoubleClick(f)}>
+                  <div key={fid} className={`p-3 border-bottom ${editing ? 'bg-warning bg-opacity-10' : ''}`} onDoubleClick={() => !editing && handleDoubleClick(f)}>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <div className="d-flex align-items-center gap-2">
                         <Calendar size={18} style={{ color: '#f59e0b' }} />
-                        <span className="fw-semibold">{f.FyName}</span>
+                        <span className="fw-semibold">{fyName(f)}</span>
                       </div>
-                      <Badge bg={f.IsCurrentFy === 'Y' ? 'warning' : 'secondary'} text={f.IsCurrentFy === 'Y' ? 'dark' : 'white'}>
-                        {f.IsCurrentFy === 'Y' ? 'Current' : 'Past'}
+                      <Badge bg={isCurrentFy(f) === 'Y' ? 'warning' : 'secondary'} text={isCurrentFy(f) === 'Y' ? 'dark' : 'white'}>
+                        {isCurrentFy(f) === 'Y' ? 'Current' : 'Past'}
                       </Badge>
                     </div>
-                    <div className="small text-muted mb-2">{formatDate(f.FyStDate)} → {formatDate(f.FyEndDate)}</div>
+                    <div className="small text-muted mb-2">{formatDate(fyStDate(f))} → {formatDate(fyEndDate(f))}</div>
                     <div className="d-flex gap-2">
                       <Button size="sm" variant="light" className="flex-fill" onClick={() => handleDoubleClick(f)}><Edit size={14} className="me-1" />Edit</Button>
-                      <Button size="sm" variant="light" className="flex-fill text-danger" onClick={() => handleDelete(f.FyId)}><Trash2 size={14} className="me-1" />Delete</Button>
+                      <Button size="sm" variant="light" className="flex-fill text-danger" onClick={() => handleDelete(fid)}><Trash2 size={14} className="me-1" />Delete</Button>
                     </div>
                   </div>
                 );
