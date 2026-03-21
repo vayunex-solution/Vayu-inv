@@ -1,84 +1,123 @@
-# 🚀 Universal Module Integration Framework
+# 🛠️ Vayunex Agent Process Guide: Module Integration
 
-This guide defines the standardized process for syncing, verifying, and deploying *any* new feature or API from a remote repository into the local project environment.
-
----
-
-## 1. Abstract Git Sync Strategy
-**Objective:** Pull specific technical components (Logic & Schema) without affecting core project configurations.
-
-1.  **Fetch & Discover:**
-    ```bash
-    git fetch <REMOTE_NAME>
-    # List files in the target branch to understand structure
-    git ls-tree -r <REMOTE_NAME>/<TARGET_BRANCH>
-    ```
-2.  **Isolated Checkout (Cherry-pick Mode):**
-    Always checkout individual files to prevent merge conflicts in shared configuration files.
-    ```bash
-    git checkout <REMOTE_NAME>/<TARGET_BRANCH> -- <FILE_PATH_1> <FILE_PATH_2>
-    ```
-3.  **Conflict Avoidance:** Before overwriting, check the differences:
-    ```bash
-    git diff HEAD <REMOTE_NAME>/<TARGET_BRANCH> -- <FILE_PATH>
-    ```
+This guide provides a step-by-step workflow for integrating new modules (e.g., City, Brand, Category) from Sandeep's remote repository into the Vayunex project. Follow these steps to minimize conflicts and optimize compute power.
 
 ---
 
-## 2. Backend Implementation Standards
-**Objective:** Maintain a strict layered architecture for scalability.
+## 1. Git Synchronization (The Project-Specific Way)
+**Goal:** Merge only the required files for a specific module without causing `package.json` or environmental conflicts.
 
-1.  **Route Registration:**
-    Ensure all new logic is registered under the project's primary entry point (e.g., `app.js` or `main.js`).
-2.  **Environmental Parity:**
-    Verify if the new module requires new variables (DB keys, API secrets) in the local environment file.
-3.  **Cross-Platform API Testing:**
-    Test raw JSON output efficiently via terminal:
+1.  **Fetch from Sandeep's Remote:**
     ```bash
-    # Step 1: Authentication (if required)
-    # Step 2: Test Endpoint
-    Invoke-RestMethod -Uri "<LOCAL_URL>/<ENDPOINT>" -Headers @{Authorization="Bearer <TOKEN>"} | ConvertTo-Json
+    git fetch upstream  # Sandeep-Ynr/Vayunex-Inventory-api.git
+    ```
+2.  **Identify files in the module branch:**
+    ```bash
+    git ls-tree -r upstream/<branch_name> | grep "<module_name>"
+    ```
+3.  **Cherry-pick specific files (The "Clean" Pull):**
+    Instead of merging the whole branch, checkout only the module files into a temporary local branch:
+    ```bash
+    git checkout upstream/<branch_name> -- src/projects/inventory/controllers/<module>.controller.js
+    git checkout upstream/<branch_name> -- src/projects/inventory/services/<module>/<module>.service.js
+    git checkout upstream/<branch_name> -- src/projects/inventory/models/<module>/<module>.model.js
+    git checkout upstream/<branch_name> -- src/projects/inventory/interfaces/<module>/<module>.interface.js
     ```
 
 ---
 
-## 3. Frontend Architecture (Universal Connectivity)
-**Objective:** Consistent data handling using a central API client.
+## 2. Backend Registration & Verification
+**Goal:** Ensure the API is active and functional before touching the frontend.
 
-### A. Generic Service Pattern
-**CRITICAL:** API clients often unwrap response bodies. Use a defensive data extraction pattern.
+1.  **Register Route in `src/app.js`:**
+    ```javascript
+    const moduleRoutes = require('./projects/inventory/controllers/module.controller');
+    app.use('/api/v1/inventory/modules', moduleRoutes);
+    ```
+2.  **Verify Locally (PowerShell):**
+    Get a token and test the endpoint without needing Postman:
+    ```powershell
+    # 1. Login to get token
+    $res = Invoke-RestMethod -Uri "http://localhost:3002/api/v1/auth/login" -Method POST -ContentType "application/json" -Body '{"email":"admin@yahoo.com","password":"admin@123"}';
+    $token = $res.data.accessToken;
+
+    # 2. Test Get All
+    Invoke-RestMethod -Uri "http://localhost:3002/api/v1/inventory/modules" -Headers @{Authorization="Bearer $token"} | ConvertTo-Json
+    ```
+3.  **Check JSON Structure:**
+    Confirm if the data is inside `data` (direct array) or `data.data` (nested object).
+    *Typical Backend Response:* `{ "success": true, "data": [...], "totalRecords": N }`
+
+---
+
+## 3. Frontend Connection (The standard Pattern)
+**Goal:** Connect the UI efficiently using the established `apiClient` pattern.
+
+### A. Create Service (`src/modules/inventory/services/moduleService.js`)
+**CRITICAL:** `apiClient` returns `response.data` (the body) directly.
 ```javascript
-export const fetchData = async (params) => {
-    const res = await apiClient.get('/<ENDPOINT_PATH>', { params });
+export const getModules = async () => {
+    const res = await apiClient.get('/api/v1/inventory/modules');
     return {
         success: true,
-        data: res.data || res || [], // Handles both manual and automatic unwrapping
+        data: res.data || res || [], // Always use this pattern to avoid "Empty/Undefined" bugs
         totalRecords: res.totalRecords || 0
     };
 };
 ```
 
-### B. UI Component Pattern
-*   **Consistency:** Mirror the backend JSON keys in the frontend state.
-*   **Design:** Implement intuitive editing features (e.g., inline editing, double-click actions) for a premium user experience.
+### B. UI Component (`src/modules/masters/pages/ModulePage.jsx`)
+1.  **Copy Pattern from `StateMasterPage.jsx`:** It has the most robust implementation (Filters + CRUD + Double-tap edit).
+2.  **Data Extraction:**
+    ```javascript
+    const res = await apiClient.get('/api/v1/inventory/modules');
+    const data = res.data || res || []; // Correct way to handle apiClient unwrapping
+    ```
 
 ---
 
-## 4. Deployment Flow (Source to Production)
+## 4. Production Deployment (Syncing to cPanel)
 
-1.  **Local Sync:** Commit all code changes to the primary development branch.
-2.  **Production Build:** Always generate a fresh production bundle after frontend changes.
-3.  **Global Push:** Push code to the centralized deployment repository.
-4.  **Production Sync:**
-    *   **State Reset:** Purge any "dirty" or modified files on the production server.
-    *   **Deployment:** Pull the latest commit and execute deployment tasks.
-    *   **Application Cycle:** Restart the application service to apply core logic changes.
+1.  **Local Build:** (Must be done locally to generate the `dist` folder)
+    ```bash
+    cd vayunex-ui; npm run build; cd ..
+    ```
+2.  **Push to Origin:**
+    ```bash
+    git add .
+    git commit -m "feat: Integrated <Module Name>"
+    git push origin main
+    ```
+3.  **Sync on cPanel (Via SSH/Terminal):**
+    If the cPanel UI shows "cannot deploy", clean the server state:
+    ```bash
+    cd repositories/Vayu-inv
+    git reset --hard HEAD
+    # Now click "Deploy HEAD Commit" in cPanel UI
+    ```
+4.  **Restart Backend:**
+    Go to cPanel **"Setup Node.js App"** and click **Restart**.
 
 ---
 
-## 🧠 Architectural Integrity Check
--   [ ] Are new routes/services registered correctly?
--   [ ] Does the API return a standardized success response?
--   [ ] Is the frontend talking to the correct production endpoint?
--   [ ] Did you generate a fresh production build?
--   [ ] Did you restart the production server service?
+# 🌍 Universal Integration Strategy (For any Project)
+
+Below is the abstract version of the steps above, applicable to any project or API.
+
+## 1. Abstract Git Sync
+1.  **Fetch & Discover:** `git fetch <REMOTE_NAME>`
+2.  **Isolated Checkout:** `git checkout <REMOTE_NAME>/<TARGET_BRANCH> -- <FILE_PATHS>`
+3.  **Conflict Avoidance:** `git diff HEAD <REMOTE_NAME>/<TARGET_BRANCH> -- <FILE_PATH>`
+
+## 2. API Testing Pattern
+```powershell
+# Get Token & Hit Endpoint
+$login = Invoke-RestMethod -Uri "<LOCAL_URL>/auth/login" -Method POST -Body '{"email":"...","password":"..."}' -ContentType "application/json"
+$token = $login.data.accessToken
+Invoke-RestMethod -Uri "<LOCAL_URL>/<ENDPOINT>" -Headers @{Authorization="Bearer $token"} | ConvertTo-Json
+```
+
+## 3. Deployment Finalization
+-   **Reset:** `git reset --hard HEAD` on production server.
+-   **Deploy:** Push `dist` from local to origin.
+-   **Restart:** Restart production service.
