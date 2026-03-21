@@ -224,9 +224,9 @@ const CityMasterPage = () => {
   }
 
   // Helpers
-  const getCountryName = (id) => countries.find(c => c.CountryId === id)?.CountryName || '-';
-  const getStateName = (id) => states.find(s => s.StateId === id)?.StateName || '-';
-  const getDistrictName = (id) => districts.find(d => d.DistrictId === id)?.DistrictName || '-';
+  const getCountryName = (id) => countries.find(c => c.CountryId === id)?.CountryName || null;
+  const getStateName = (id) => states.find(s => s.StateId === id)?.StateName || null;
+  const getDistrictName = (id) => districts.find(d => d.DistrictId === id)?.DistrictName || null;
 
   return (
     <>
@@ -384,13 +384,13 @@ const CityMasterPage = () => {
                         <td className="ps-4">
                            <div className="d-flex flex-column gap-1">
                               <span className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>
-                                 {getDistrictName(city.DistrictId) || city.District?.DistrictName || `DID: ${city.DistrictId}`}
+                                 {city.District?.DistrictName || getDistrictName(city.DistrictId) || `District ID: ${city.DistrictId}`}
                               </span>
                               <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                 {getStateName(city.StateId) || city.State?.StateName || `SID: ${city.StateId}`}
+                                 {city.State?.StateName || getStateName(city.StateId) || `State ID: ${city.StateId}`}
                               </span>
                               <span className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                 {getCountryName(city.CountryId) || city.Country?.CountryName || `CID: ${city.CountryId}`}
+                                 {city.Country?.CountryName || getCountryName(city.CountryId) || `Country ID: ${city.CountryId}`}
                               </span>
                            </div>
                         </td>

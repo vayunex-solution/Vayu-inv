@@ -180,9 +180,9 @@ const DistrictMasterPage = () => {
       );
   }
 
-  // Helper to find names
-  const getCountryName = (id) => countries.find(c => c.CountryId === id)?.CountryName || '-';
-  const getStateName = (id) => states.find(s => s.StateId === id)?.StateName || '-';
+  // Helpers
+  const getCountryName = (id) => countries.find(c => c.CountryId === id)?.CountryName || null;
+  const getStateName = (id) => states.find(s => s.StateId === id)?.StateName || null;
 
   return (
     <>
@@ -356,11 +356,11 @@ const DistrictMasterPage = () => {
                       >
                         <td className="ps-4">
                            <div className="d-flex flex-column">
-                              <span className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
-                                 {getCountryName(district.CountryId) || district.Country?.CountryName || `CID: ${district.CountryId}`}
+                              <span className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>
+                                 {district.State?.StateName || getStateName(district.StateId) || `State ID: ${district.StateId}`}
                               </span>
-                              <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                                 {getStateName(district.StateId) || district.State?.StateName || `SID: ${district.StateId}`}
+                              <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                 {district.Country?.CountryName || getCountryName(district.CountryId) || `Country ID: ${district.CountryId}`}
                               </span>
                            </div>
                         </td>
