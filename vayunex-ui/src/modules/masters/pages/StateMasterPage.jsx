@@ -26,7 +26,7 @@ const StateMasterPage = () => {
   // Load countries for dropdown filter
   useEffect(() => {
     apiClient.get('/api/v1/inventory/countries/dropdown').then(res => {
-      setCountries(res.data?.data || []);
+      setCountries(res.data || res || []);
     }).catch(() => {});
   }, []);
 
@@ -36,7 +36,7 @@ const StateMasterPage = () => {
       const params = new URLSearchParams();
       if (selectedCountryId) params.append('country_id', selectedCountryId);
       const res = await apiClient.get(`/api/v1/inventory/states?${params.toString()}`);
-      const data = res.data?.data || [];
+      const data = res.data || res || [];
       const filtered = search
         ? data.filter(s =>
             (s.StateName || '').toLowerCase().includes(search.toLowerCase()) ||

@@ -15,8 +15,8 @@ export const getStates = async (params = {}) => {
         const response = await apiClient.get(`/api/v1/inventory/states?${queryParams.toString()}`);
         return {
             success: true,
-            data: response.data?.data || [],
-            totalRecords: response.data?.totalRecords || 0
+            data: response.data || response || [],
+            totalRecords: response.totalRecords || 0
         };
     } catch (error) {
         return {
@@ -34,7 +34,7 @@ export const getStatesDropdown = async (countryId = 0) => {
         const response = await apiClient.get(`/api/v1/inventory/states/dropdown?country_id=${countryId}`);
         return {
             success: true,
-            data: response.data?.data || []
+            data: response.data || response || []
         };
     } catch (error) {
         return {
@@ -50,7 +50,7 @@ export const getStatesDropdown = async (countryId = 0) => {
 export const getStateById = async (id) => {
     try {
         const response = await apiClient.get(`/api/v1/inventory/states/${id}`);
-        return { success: true, data: response.data?.data };
+        return { success: true, data: response.data || response };
     } catch (error) {
         return {
             success: false,
