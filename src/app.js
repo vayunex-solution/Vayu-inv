@@ -135,7 +135,7 @@ const registerRoutes = () => {
     app.use('/api/v1/inventory/brands', brandRoutes);
 
     const fyRoutes = require('./projects/inventory/controllers/fy.controller');
-    app.use('/api/v1/inventory/fys', fyRoutes);
+    app.use('/api/v1/inventory/fy', fyRoutes);
 
     // Admin routes (protected)
     const menuRoutes = require('./projects/admin/controllers/menu.controller');
