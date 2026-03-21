@@ -1,0 +1,5 @@
+.vs/VSWorkspaceState.json
+src/projects/inventory/controllers/state.controller.js
+src/projects/inventory/interfaces/state/state.interface.js
+src/projects/inventory/models/state/state.model.js
+src/projects/inventory/services/state/state.service.js

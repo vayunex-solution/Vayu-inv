@@ -9,7 +9,14 @@ import { useTabStore } from '../../lib';
 import { DashboardPage } from '../../modules/dashboard';
 import { ItemsListPage, CountriesPage } from '../../modules/inventory';
 import { CategoriesPage } from '../../modules/categories';
-import { CountryMasterPage, CityMasterPage, StateMasterPage } from '../../modules/masters';
+import { 
+  CountryMasterPage, 
+  CityMasterPage, 
+  StateMasterPage, 
+  BrandMasterPage, 
+  DistrictMasterPage, 
+  FyMasterPage 
+} from '../../modules/masters';
 import { Sparkles } from 'lucide-react';
 
 // Component mapping — keys must match item.id from the sidebar menu API
@@ -27,6 +34,9 @@ const componentMap = {
   COUNTRY_MASTER: CountryMasterPage,
   CITY_MASTER: CityMasterPage,
   STATE_MASTER: StateMasterPage,
+  BRAND_MASTER: BrandMasterPage,
+  DISTRICT_MASTER: DistrictMasterPage,
+  FY_MASTER: FyMasterPage,
 
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">
