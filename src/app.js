@@ -122,6 +122,12 @@ const registerRoutes = () => {
     const stateRoutes = require('./projects/inventory/controllers/state.controller');
     app.use('/api/v1/inventory/states', stateRoutes);
 
+    const cityRoutes = require('./projects/inventory/controllers/city.controller');
+    app.use('/api/v1/inventory/cities', cityRoutes);
+
+    const fyRoutes = require('./projects/inventory/controllers/fy.controller');
+    app.use('/api/v1/inventory/fy', fyRoutes);
+
     // Admin routes (protected)
     const menuRoutes = require('./projects/admin/controllers/menu.controller');
     app.use('/api/v1/admin/menus', menuRoutes);
