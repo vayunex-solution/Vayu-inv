@@ -1,12 +1,20 @@
 // src/components/layout/Header.jsx
 import { Navbar, Container, InputGroup, Form, Button, Dropdown } from 'react-bootstrap';
-import { Menu, Search, Bell, Sun, Moon, LogOut, User } from 'lucide-react';
-import { AppUser } from '../../lib';
+import { Menu, Search, Bell, Sun, Moon, LogOut, User, Calendar } from 'lucide-react';
+import { AppUser, useFyStore } from '../../lib';
 import { useTheme } from '../../context/ThemeContext';
+import { useEffect } from 'react';
 
 const Header = ({ onMenuToggle }) => {
   const user = AppUser.getInstance();
   const { isDark, toggleTheme } = useTheme();
+  const { fys, selectedFyId, loadFys, setSelectedFy } = useFyStore();
+
+  useEffect(() => {
+    if (!fys.length) {
+      loadFys();
+    }
+  }, [fys.length, loadFys]);
 
   const handleLogout = () => {
     AppUser.clear();
@@ -40,6 +48,42 @@ const Header = ({ onMenuToggle }) => {
 
         {/* Right Actions */}
         <div className="ms-auto d-flex align-items-center gap-3">
+          {/* Mobile FY Selector */}
+          <div className="d-md-none">
+            <Form.Select
+              size="sm"
+              value={selectedFyId}
+              onChange={(e) => setSelectedFy(e.target.value)}
+              className="shadow-none"
+            >
+              {fys.map(fy => {
+                const id = fy.FYID || fy.FyId || fy.fy_id;
+                const name = fy.FYNAME || fy.FyName || fy.fy_name || `FY ${id}`;
+                const badge = (fy.ISCURRENTFY || fy.IsCurrentFy || fy.is_current_fy) === 'Y' ? ' (Current)' : '';
+                return <option key={id} value={String(id)}>{name}{badge}</option>;
+              })}
+            </Form.Select>
+          </div>
+
+          {/* FY Selector */}
+          <div className="d-none d-md-flex align-items-center gap-2">
+            <Calendar size={18} className="text-muted" />
+            <Form.Select
+              size="sm"
+              value={selectedFyId}
+              onChange={(e) => setSelectedFy(e.target.value)}
+              style={{ minWidth: 180 }}
+              className="shadow-none"
+            >
+              {fys.map(fy => {
+                const id = fy.FYID || fy.FyId || fy.fy_id;
+                const name = fy.FYNAME || fy.FyName || fy.fy_name || `FY ${id}`;
+                const badge = (fy.ISCURRENTFY || fy.IsCurrentFy || fy.is_current_fy) === 'Y' ? ' (Current)' : '';
+                return <option key={id} value={String(id)}>{name}{badge}</option>;
+              })}
+            </Form.Select>
+          </div>
+
           <Button
             variant="light"
             className="rounded-circle d-flex align-items-center justify-content-center p-2"

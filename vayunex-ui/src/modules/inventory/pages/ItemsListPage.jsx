@@ -4,7 +4,7 @@ import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Pagina
 import { Plus, Search, Edit, Trash2, Eye, Package, Check, X } from 'lucide-react';
 import { getItems, updateItem } from '../services/inventoryService';
 import { getCategories } from '../../categories/services/categoryService';
-import { useTabStore } from '../../../lib';
+import { useTabStore, useFyStore } from '../../../lib';
 
 const ItemsListPage = () => {
   const [items, setItems] = useState([]);
@@ -20,6 +20,7 @@ const ItemsListPage = () => {
   const [savingId, setSavingId] = useState(null);
 
   const { openTab } = useTabStore();
+  const { selectedFyId } = useFyStore();
 
   const fetchItems = async (page = 1) => {
     setLoading(true);
@@ -27,6 +28,7 @@ const ItemsListPage = () => {
       const itemsRes = await getItems({ 
         search, 
         category_id: categoryFilter ? parseInt(categoryFilter) : null,
+        fy_id: selectedFyId || null,
         page,
         limit: pagination.limit
       });
@@ -50,7 +52,7 @@ const ItemsListPage = () => {
       if (catRes.success) setCategories(catRes.data);
     };
     fetchCats();
-  }, [search, categoryFilter]);
+  }, [search, categoryFilter, selectedFyId]);
 
   const handleViewItem = (item) => {
     openTab({

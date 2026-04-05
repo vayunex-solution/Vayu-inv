@@ -17,6 +17,7 @@ export const getItems = async (params = {}) => {
         if (params.category_id) queryParams.append('category_id', params.category_id);
         if (params.sort_by) queryParams.append('sortBy', params.sort_by);
         if (params.sort_order) queryParams.append('sortOrder', params.sort_order);
+        if (params.fy_id) queryParams.append('fy_id', params.fy_id);
 
         const response = await apiClient.get(`/api/v1/inventory/items?${queryParams.toString()}`);
         return {

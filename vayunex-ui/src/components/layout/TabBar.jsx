@@ -1,20 +1,28 @@
 // src/components/layout/TabBar.jsx
-import { Nav, Button } from 'react-bootstrap';
+import { Nav, Button, Badge } from 'react-bootstrap';
 import { X, Plus } from 'lucide-react';
 import * as Icons from 'lucide-react';
-import { useTabStore } from '../../lib';
+import { useTabStore, useFyStore } from '../../lib';
 
 const TabBar = () => {
   const { tabs, activeTabId, switchTab, closeTab, openTab } = useTabStore();
+  const { selectedFyId, fys } = useFyStore();
 
   const getIcon = (iconName) => {
     const IconComponent = Icons[iconName];
     return IconComponent ? <IconComponent size={14} /> : null;
   };
 
+  const currentFyName = () => {
+    const fy = fys.find(f => String(f.FYID || f.FyId || f.fy_id) === String(selectedFyId));
+    const name = fy?.FYNAME || fy?.FyName || fy?.fy_name;
+    if (name) return name;
+    return selectedFyId ? `FY #${selectedFyId}` : 'Select FY';
+  };
+
   return (
-    <div className="bg-white border-bottom px-3 pt-2">
-      <Nav variant="tabs" className="border-bottom-0 flex-nowrap overflow-auto" style={{ scrollbarWidth: 'none' }}>
+    <div className="bg-white border-bottom px-3 pt-2 d-flex align-items-center gap-3">
+      <Nav variant="tabs" className="border-bottom-0 flex-nowrap overflow-auto flex-grow-1" style={{ scrollbarWidth: 'none' }}>
         {tabs.map((tab) => (
           <Nav.Item key={tab.id} className="text-nowrap" style={{ minWidth: 140, maxWidth: 200 }}>
             <Nav.Link
@@ -59,6 +67,12 @@ const TabBar = () => {
           </Button>
         </Nav.Item>
       </Nav>
+
+      <div className="d-none d-md-flex align-items-center">
+        <Badge bg="primary" className="rounded-pill px-3 py-2 text-white">
+          Current FY: {currentFyName()}
+        </Badge>
+      </div>
     </div>
   );
 };

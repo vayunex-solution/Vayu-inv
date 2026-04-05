@@ -3,6 +3,7 @@
 
 import axios from 'axios';
 import { AppUser } from './index';
+import useFyStore from './FyStore';
 
 // API Base URL
 // API Base URL
@@ -24,6 +25,18 @@ apiClient.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Attach selected FY to every request (query param + header for safety)
+        const fyId = useFyStore.getState().selectedFyId;
+        if (fyId) {
+            config.headers['X-FY-ID'] = fyId;
+            if (config.method?.toLowerCase() === 'get') {
+                config.params = { ...(config.params || {}), fy_id: fyId };
+            } else if (config.data && typeof config.data === 'object') {
+                config.data = { fy_id: fyId, ...config.data };
+            }
+        }
+
         return config;
     },
     (error) => {
