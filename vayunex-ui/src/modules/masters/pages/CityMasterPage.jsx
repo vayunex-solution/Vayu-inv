@@ -342,7 +342,7 @@ const CityMasterPage = () => {
                       <td>
                         {editing
                           ? <Form.Control size="sm" style={{ width: 100 }} placeholder="Pincode" value={editForm.pincode} onChange={e => setEditForm(f => ({ ...f, pincode: e.target.value }))} />
-                          : <code className="bg-info bg-opacity-10 text-info px-2 py-1 rounded small fw-bold">{c.Pincode || '—'}</code>}
+                          : <code className="bg-info bg-opacity-10 text-info px-2 py-1 rounded small fw-bold">{c.Pincode || '-'}</code>}
                       </td>
                       <td>
                         {editing ? (
@@ -380,7 +380,7 @@ const CityMasterPage = () => {
                         ) : (
                           <div>
                             <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-2 me-1">
-                              {c.District?.DistrictName || getDistrictName(c.DistrictId) || '—'}
+                              {c.District?.DistrictName || getDistrictName(c.DistrictId) || '-'}
                             </span>
                             <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-2">
                               {c.State?.StateName || getStateName(c.StateId) || `State #${c.StateId}`}
@@ -435,7 +435,7 @@ const CityMasterPage = () => {
                     </div>
                     {c.Pincode && <div className="small text-muted mb-1">Pincode: <code className="text-info">{c.Pincode}</code></div>}
                     <div className="small text-muted mb-2">
-                      {c.District?.DistrictName || getDistrictName(c.DistrictId) || '—'} • {c.State?.StateName || getStateName(c.StateId) || '—'} • {c.Country?.CountryName || getCountryName(c.CountryId) || '—'}
+                      {c.District?.DistrictName || getDistrictName(c.DistrictId) || '-'} • {c.State?.StateName || getStateName(c.StateId) || '-'} • {c.Country?.CountryName || getCountryName(c.CountryId) || '-'}
                     </div>
                     <div className="d-flex gap-2">
                       <Button size="sm" variant="light" className="flex-fill" onClick={() => handleDoubleClick(c)}><Edit size={14} className="me-1" />Edit</Button>
@@ -507,3 +507,4 @@ const CityMasterPage = () => {
 };
 
 export default CityMasterPage;
+

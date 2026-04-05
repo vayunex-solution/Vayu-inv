@@ -21,11 +21,13 @@ const BrandMasterPage = () => {
     setTimeout(() => setAlert(null), 3000);
   };
 
+  const normalizeListResponse = (res) => (res?.data || res || []);
+
   const fetchBrands = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiClient.get('/api/v1/inventory/brands');
-      const data = res.data || res || [];
+      const data = normalizeListResponse(res);
       const filtered = search
         ? data.filter(b =>
             (b.BrandName || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -54,10 +56,19 @@ const BrandMasterPage = () => {
   const cancelEdit = () => { setEditingId(null); setEditForm({}); };
 
   const saveEdit = async (id) => {
+    if (!editForm.brand_name?.trim()) {
+      showAlert('Brand Name is required', 'danger');
+      return;
+    }
     setSavingId(id);
     try {
       setBrands(prev => prev.map(b =>
-        b.BrandId === id ? { ...b, BrandName: editForm.brand_name, ShortName: editForm.short_name, IsActive: editForm.is_active } : b
+        b.BrandId === id ? { 
+          ...b, 
+          BrandName: editForm.brand_name, 
+          ShortName: editForm.short_name, 
+          IsActive: editForm.is_active 
+        } : b
       ));
       await apiClient.put(`/api/v1/inventory/brands/${id}`, editForm);
       showAlert('Brand updated successfully');
@@ -111,17 +122,17 @@ const BrandMasterPage = () => {
 
       <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
         <div>
-          <h4 className="fw-bold mb-1" style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <h4 className="fw-bold mb-1" style={{ background: 'linear-gradient(135deg, #10b981, #059669)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Brand Master
           </h4>
           <p className="text-muted small mb-0">{brands.length} brands configured</p>
         </div>
         <div className="d-flex gap-2">
-          <Button variant="light" size="sm" className="rounded-pill" onClick={fetchBrands} title="Refresh">
+          <button className="btn btn-light btn-sm rounded-pill" onClick={fetchBrands} title="Refresh">
             <RefreshCw size={16} />
-          </Button>
-          <Button variant="primary" className="d-flex align-items-center gap-2 rounded-pill shadow-sm" onClick={() => setShowAddModal(true)}
-            style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none' }}>
+          </button>
+          <Button className="d-flex align-items-center gap-2 rounded-pill shadow-sm text-white" onClick={() => setShowAddModal(true)}
+            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none' }}>
             <Plus size={18} /> Add Brand
           </Button>
         </div>
@@ -154,7 +165,7 @@ const BrandMasterPage = () => {
       <Card className="border-0 shadow-sm overflow-hidden">
         {loading ? (
           <div className="d-flex align-items-center justify-content-center p-5">
-            <Spinner animation="border" style={{ color: '#a855f7' }} />
+            <Spinner animation="border" style={{ color: '#10b981' }} />
           </div>
         ) : brands.length === 0 ? (
           <div className="text-center p-5 text-muted">
@@ -179,14 +190,14 @@ const BrandMasterPage = () => {
                   return (
                     <tr key={b.BrandId} onDoubleClick={() => !editing && handleDoubleClick(b)}
                         style={{ cursor: editing ? 'default' : 'pointer' }}
-                        className={editing ? 'table-warning bg-opacity-25' : ''}
+                        className={editing ? 'table-success bg-opacity-25' : ''}
                         title={!editing ? 'Double-click to edit' : ''}>
                       <td className="text-muted small">{idx + 1}</td>
                       <td>
                         <div className="d-flex align-items-center gap-2">
                           <div className="rounded-circle d-flex align-items-center justify-content-center"
-                            style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #a855f720, #7c3aed20)' }}>
-                            <Tag size={16} style={{ color: '#a855f7' }} />
+                            style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #10b98120, #05966920)' }}>
+                            <Tag size={16} style={{ color: '#10b981' }} />
                           </div>
                           {editing
                             ? <Form.Control size="sm" value={editForm.brand_name} onChange={e => setEditForm(f => ({ ...f, brand_name: e.target.value }))} autoFocus />
@@ -209,7 +220,7 @@ const BrandMasterPage = () => {
                       <td className="text-end">
                         {editing ? (
                           <div className="d-flex justify-content-end gap-1">
-                            <Button size="sm" variant="warning" onClick={() => saveEdit(b.BrandId)} disabled={savingId === b.BrandId} className="rounded-circle p-1 text-white" style={{ width: 28, height: 28 }}>
+                            <Button size="sm" variant="success" onClick={() => saveEdit(b.BrandId)} disabled={savingId === b.BrandId} className="rounded-circle p-1 text-white" style={{ width: 28, height: 28 }}>
                               {savingId === b.BrandId ? <Spinner size="sm" animation="border" /> : <Check size={14} />}
                             </Button>
                             <Button size="sm" variant="danger" onClick={cancelEdit} className="rounded-circle p-1" style={{ width: 28, height: 28 }}>
@@ -238,10 +249,10 @@ const BrandMasterPage = () => {
               {brands.map(b => {
                 const editing = editingId === b.BrandId;
                 return (
-                  <div key={b.BrandId} className={`p-3 border-bottom ${editing ? 'bg-warning bg-opacity-10' : ''}`} onDoubleClick={() => !editing && handleDoubleClick(b)}>
+                  <div key={b.BrandId} className={`p-3 border-bottom ${editing ? 'bg-success bg-opacity-10' : ''}`} onDoubleClick={() => !editing && handleDoubleClick(b)}>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <div className="d-flex align-items-center gap-2">
-                        <Tag size={18} style={{ color: '#a855f7' }} />
+                        <Tag size={18} style={{ color: '#10b981' }} />
                         <span className="fw-semibold">{b.BrandName}</span>
                       </div>
                       <Badge bg={b.IsActive === 'Y' ? 'success' : 'secondary'}>{b.IsActive === 'Y' ? 'Active' : 'Inactive'}</Badge>
@@ -261,7 +272,7 @@ const BrandMasterPage = () => {
                         </Row>
                         <div className="d-flex gap-2">
                           <Button size="sm" variant="danger" className="flex-fill rounded-pill" onClick={cancelEdit}>Cancel</Button>
-                          <Button size="sm" variant="warning" className="flex-fill rounded-pill text-white" onClick={() => saveEdit(b.BrandId)} disabled={savingId === b.BrandId}>Save</Button>
+                          <Button size="sm" variant="success" className="flex-fill rounded-pill text-white" onClick={() => saveEdit(b.BrandId)} disabled={savingId === b.BrandId}>Save</Button>
                         </div>
                       </div>
                     ) : (
@@ -282,7 +293,7 @@ const BrandMasterPage = () => {
       {/* Add Brand Modal */}
       <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered>
         <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold">Add New Brand</Modal.Title>
+          <Modal.Title className="fw-bold text-success">Add New Brand</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
@@ -306,7 +317,7 @@ const BrandMasterPage = () => {
         <Modal.Footer className="border-0 pt-0">
           <Button variant="light" className="rounded-pill px-4" onClick={() => setShowAddModal(false)}>Cancel</Button>
           <Button className="rounded-pill px-4 text-white" onClick={handleAdd} disabled={addSaving}
-            style={{ background: 'linear-gradient(135deg, #a855f7, #7c3aed)', border: 'none' }}>
+            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', border: 'none' }}>
             {addSaving ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : 'Add Brand'}
           </Button>
         </Modal.Footer>
