@@ -9,6 +9,10 @@ const CityMasterPage = () => {
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
   const [districts, setDistricts] = useState([]);
+  const [allStates, setAllStates] = useState([]);
+  const [allDistricts, setAllDistricts] = useState([]);
+  const [editStates, setEditStates] = useState([]);
+  const [editDistricts, setEditDistricts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCountryId, setSelectedCountryId] = useState('');
@@ -28,10 +32,22 @@ const CityMasterPage = () => {
     setTimeout(() => setAlert(null), 3000);
   };
 
+  const normalizeListResponse = (res) => (res?.data || res || []);
+
   // Load countries
   useEffect(() => {
     apiClient.get('/api/v1/inventory/countries/dropdown').then(res => {
-      setCountries(res.data || res || []);
+      setCountries(normalizeListResponse(res));
+    }).catch(() => {});
+  }, []);
+
+  // Load full state/district lists (for displaying names even when filters are empty)
+  useEffect(() => {
+    apiClient.get('/api/v1/inventory/states/dropdown?country_id=0').then(res => {
+      setAllStates(normalizeListResponse(res));
+    }).catch(() => {});
+    apiClient.get('/api/v1/inventory/districts/dropdown?state_id=0').then(res => {
+      setAllDistricts(normalizeListResponse(res));
     }).catch(() => {});
   }, []);
 
@@ -39,32 +55,33 @@ const CityMasterPage = () => {
   useEffect(() => {
     if (selectedCountryId) {
       apiClient.get(`/api/v1/inventory/states/dropdown?country_id=${selectedCountryId}`)
-        .then(res => setStates(res.data || res || []))
+        .then(res => setStates(normalizeListResponse(res)))
         .catch(() => {});
       setSelectedStateId('');
       setDistricts([]);
     } else {
-      setStates([]);
+      setStates(allStates);
       setSelectedStateId('');
-      setDistricts([]);
+      setDistricts(allDistricts);
     }
-  }, [selectedCountryId]);
+  }, [selectedCountryId, allStates, allDistricts]);
 
   // Filter: districts when state changes
   useEffect(() => {
     if (selectedStateId) {
       apiClient.get(`/api/v1/inventory/districts/dropdown?state_id=${selectedStateId}`)
-        .then(res => setDistricts(res.data || res || []))
+        .then(res => setDistricts(normalizeListResponse(res)))
         .catch(() => {});
     } else {
-      setDistricts([]);
+      setDistricts(allDistricts);
     }
-  }, [selectedStateId]);
+  }, [selectedStateId, allDistricts]);
 
   const fetchCities = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      if (selectedCountryId) params.append('country_id', selectedCountryId);
       if (selectedStateId) params.append('state_id', selectedStateId);
       const res = await apiClient.get(`/api/v1/inventory/cities?${params.toString()}`);
       const data = res.data || res || [];
@@ -80,7 +97,7 @@ const CityMasterPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, selectedStateId]);
+  }, [search, selectedCountryId, selectedStateId]);
 
   useEffect(() => { fetchCities(); }, [fetchCities]);
 
@@ -108,22 +125,66 @@ const CityMasterPage = () => {
     }
   };
 
-  const handleDoubleClick = (c) => {
+  const loadEditStates = async (countryId) => {
+    if (!countryId) { setEditStates([]); return; }
+    try {
+      const res = await apiClient.get(`/api/v1/inventory/states/dropdown?country_id=${countryId}`);
+      setEditStates(normalizeListResponse(res));
+    } catch { setEditStates([]); }
+  };
+
+  const loadEditDistricts = async (stateId) => {
+    if (!stateId) { setEditDistricts([]); return; }
+    try {
+      const res = await apiClient.get(`/api/v1/inventory/districts/dropdown?state_id=${stateId}`);
+      setEditDistricts(normalizeListResponse(res));
+    } catch { setEditDistricts([]); }
+  };
+
+  const handleEditCountryChange = async (cid) => {
+    setEditForm(f => ({ ...f, country_id: cid, state_id: '', district_id: '' }));
+    await loadEditStates(cid);
+    setEditDistricts([]);
+  };
+
+  const handleEditStateChange = async (sid) => {
+    setEditForm(f => ({ ...f, state_id: sid, district_id: '' }));
+    await loadEditDistricts(sid);
+  };
+
+  const handleDoubleClick = async (c) => {
     setEditingId(c.CityId);
+    await loadEditStates(c.CountryId);
+    await loadEditDistricts(c.StateId);
     setEditForm({
       city_name: c.CityName,
       pincode: c.Pincode || '',
       is_active: c.IsActive || 'Y',
+      country_id: c.CountryId,
+      state_id: c.StateId,
+      district_id: c.DistrictId || '',
     });
   };
 
-  const cancelEdit = () => { setEditingId(null); setEditForm({}); };
+  const cancelEdit = () => { setEditingId(null); setEditForm({}); setEditStates([]); setEditDistricts([]); };
 
   const saveEdit = async (id) => {
+    if (!editForm.country_id || !editForm.state_id || !String(editForm.city_name || '').trim()) {
+      showAlert('Country, State and City Name are required', 'danger');
+      return;
+    }
     setSavingId(id);
     try {
       setCities(prev => prev.map(c =>
-        c.CityId === id ? { ...c, CityName: editForm.city_name, Pincode: editForm.pincode, IsActive: editForm.is_active } : c
+        c.CityId === id ? {
+          ...c,
+          CityName: editForm.city_name,
+          Pincode: editForm.pincode,
+          IsActive: editForm.is_active,
+          CountryId: editForm.country_id,
+          StateId: editForm.state_id,
+          DistrictId: editForm.district_id,
+        } : c
       ));
       await apiClient.put(`/api/v1/inventory/cities/${id}`, editForm);
       showAlert('City updated successfully');
@@ -133,6 +194,8 @@ const CityMasterPage = () => {
     } finally {
       setSavingId(null);
       setEditingId(null);
+      setEditStates([]);
+      setEditDistricts([]);
     }
   };
 
@@ -169,9 +232,9 @@ const CityMasterPage = () => {
     }
   };
 
-  const getStateName = (id) => states.find(s => s.StateId === id)?.StateName || null;
-  const getCountryName = (id) => countries.find(c => c.CountryId === id)?.CountryName || null;
-  const getDistrictName = (id) => districts.find(d => d.DistrictId === id)?.DistrictName || null;
+  const getStateName = (id) => allStates.find(s => String(s.StateId) === String(id))?.StateName || null;
+  const getCountryName = (id) => countries.find(c => String(c.CountryId) === String(id))?.CountryName || null;
+  const getDistrictName = (id) => allDistricts.find(d => String(d.DistrictId) === String(id))?.DistrictName || null;
 
   return (
     <div className="container-fluid p-0">
@@ -282,14 +345,48 @@ const CityMasterPage = () => {
                           : <code className="bg-info bg-opacity-10 text-info px-2 py-1 rounded small fw-bold">{c.Pincode || '—'}</code>}
                       </td>
                       <td>
-                        <div>
-                          <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-2 me-1">
-                            {c.District?.DistrictName || getDistrictName(c.DistrictId) || '—'}
-                          </span>
-                          <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-2">
-                            {c.State?.StateName || getStateName(c.StateId) || `State #${c.StateId}`}
-                          </span>
-                        </div>
+                        {editing ? (
+                          <div className="d-flex flex-column gap-1" style={{ minWidth: 220 }}>
+                            <Form.Select
+                              size="sm"
+                              value={editForm.country_id || ''}
+                              onChange={e => handleEditCountryChange(e.target.value)}
+                              className="shadow-none"
+                            >
+                              <option value="">Select Country</option>
+                              {countries.map(cn => <option key={cn.CountryId} value={cn.CountryId}>{cn.CountryName}</option>)}
+                            </Form.Select>
+                            <Form.Select
+                              size="sm"
+                              value={editForm.state_id || ''}
+                              onChange={e => handleEditStateChange(e.target.value)}
+                              className="shadow-none"
+                              disabled={!editForm.country_id}
+                            >
+                              <option value="">Select State</option>
+                              {editStates.map(s => <option key={s.StateId} value={s.StateId}>{s.StateName}</option>)}
+                            </Form.Select>
+                            <Form.Select
+                              size="sm"
+                              value={editForm.district_id || ''}
+                              onChange={e => setEditForm(f => ({ ...f, district_id: e.target.value }))}
+                              className="shadow-none"
+                              disabled={!editForm.state_id}
+                            >
+                              <option value="">Select District</option>
+                              {editDistricts.map(d => <option key={d.DistrictId} value={d.DistrictId}>{d.DistrictName}</option>)}
+                            </Form.Select>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-2 me-1">
+                              {c.District?.DistrictName || getDistrictName(c.DistrictId) || '—'}
+                            </span>
+                            <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-2">
+                              {c.State?.StateName || getStateName(c.StateId) || `State #${c.StateId}`}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="text-center">
                         {editing
@@ -338,7 +435,7 @@ const CityMasterPage = () => {
                     </div>
                     {c.Pincode && <div className="small text-muted mb-1">Pincode: <code className="text-info">{c.Pincode}</code></div>}
                     <div className="small text-muted mb-2">
-                      {c.District?.DistrictName || '—'} • {c.State?.StateName || getStateName(c.StateId) || '—'} • {c.Country?.CountryName || getCountryName(c.CountryId) || '—'}
+                      {c.District?.DistrictName || getDistrictName(c.DistrictId) || '—'} • {c.State?.StateName || getStateName(c.StateId) || '—'} • {c.Country?.CountryName || getCountryName(c.CountryId) || '—'}
                     </div>
                     <div className="d-flex gap-2">
                       <Button size="sm" variant="light" className="flex-fill" onClick={() => handleDoubleClick(c)}><Edit size={14} className="me-1" />Edit</Button>

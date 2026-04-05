@@ -8,6 +8,8 @@ const DistrictMasterPage = () => {
   const [districts, setDistricts] = useState([]);
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
+  const [allStates, setAllStates] = useState([]);
+  const [editStates, setEditStates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCountryId, setSelectedCountryId] = useState('');
@@ -26,10 +28,19 @@ const DistrictMasterPage = () => {
     setTimeout(() => setAlert(null), 3000);
   };
 
+  const normalizeListResponse = (res) => (res?.data || res || []);
+
   // Load countries
   useEffect(() => {
     apiClient.get('/api/v1/inventory/countries/dropdown').then(res => {
-      setCountries(res.data || res || []);
+      setCountries(normalizeListResponse(res));
+    }).catch(() => {});
+  }, []);
+
+  // Load all states once (so the grid can show StateName even when no filter is selected)
+  useEffect(() => {
+    apiClient.get('/api/v1/inventory/states/dropdown?country_id=0').then(res => {
+      setAllStates(normalizeListResponse(res));
     }).catch(() => {});
   }, []);
 
@@ -37,19 +48,20 @@ const DistrictMasterPage = () => {
   useEffect(() => {
     if (selectedCountryId) {
       apiClient.get(`/api/v1/inventory/states/dropdown?country_id=${selectedCountryId}`)
-        .then(res => { setStates(res.data || res || []); })
+        .then(res => { setStates(normalizeListResponse(res)); })
         .catch(() => {});
       setSelectedStateId('');
     } else {
-      setStates([]);
+      setStates(allStates);
       setSelectedStateId('');
     }
-  }, [selectedCountryId]);
+  }, [selectedCountryId, allStates]);
 
   const fetchDistricts = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      if (selectedCountryId) params.append('country_id', selectedCountryId);
       if (selectedStateId) params.append('state_id', selectedStateId);
       const res = await apiClient.get(`/api/v1/inventory/districts?${params.toString()}`);
       const data = res.data || res || [];
@@ -62,7 +74,7 @@ const DistrictMasterPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, selectedStateId]);
+  }, [search, selectedCountryId, selectedStateId]);
 
   useEffect(() => { fetchDistricts(); }, [fetchDistricts]);
 
@@ -72,15 +84,34 @@ const DistrictMasterPage = () => {
     if (cid) {
       try {
         const res = await apiClient.get(`/api/v1/inventory/states/dropdown?country_id=${cid}`);
-        setAddStates(res.data || res || []);
+        setAddStates(normalizeListResponse(res));
       } catch { setAddStates([]); }
     } else {
       setAddStates([]);
     }
   };
 
-  const handleDoubleClick = (d) => {
+  const loadEditStates = async (countryId) => {
+    if (!countryId) {
+      setEditStates([]);
+      return;
+    }
+    try {
+      const res = await apiClient.get(`/api/v1/inventory/states/dropdown?country_id=${countryId}`);
+      setEditStates(normalizeListResponse(res));
+    } catch {
+      setEditStates([]);
+    }
+  };
+
+  const handleEditCountryChange = async (countryId) => {
+    setEditForm(f => ({ ...f, country_id: countryId, state_id: '' }));
+    await loadEditStates(countryId);
+  };
+
+  const handleDoubleClick = async (d) => {
     setEditingId(d.DistrictId);
+    await loadEditStates(d.CountryId);
     setEditForm({
       district_name: d.DistrictName,
       state_id: d.StateId,
@@ -89,13 +120,23 @@ const DistrictMasterPage = () => {
     });
   };
 
-  const cancelEdit = () => { setEditingId(null); setEditForm({}); };
+  const cancelEdit = () => { setEditingId(null); setEditForm({}); setEditStates([]); };
 
   const saveEdit = async (id) => {
+    if (!editForm.country_id || !editForm.state_id || !String(editForm.district_name || '').trim()) {
+      showAlert('Country, State and District Name are required', 'danger');
+      return;
+    }
     setSavingId(id);
     try {
       setDistricts(prev => prev.map(d =>
-        d.DistrictId === id ? { ...d, DistrictName: editForm.district_name, IsActive: editForm.is_active } : d
+        d.DistrictId === id ? {
+          ...d,
+          DistrictName: editForm.district_name,
+          IsActive: editForm.is_active,
+          CountryId: editForm.country_id,
+          StateId: editForm.state_id,
+        } : d
       ));
       await apiClient.put(`/api/v1/inventory/districts/${id}`, editForm);
       showAlert('District updated successfully');
@@ -105,6 +146,7 @@ const DistrictMasterPage = () => {
     } finally {
       setSavingId(null);
       setEditingId(null);
+      setEditStates([]);
     }
   };
 
@@ -140,8 +182,8 @@ const DistrictMasterPage = () => {
     }
   };
 
-  const getCountryName = (id) => countries.find(c => c.CountryId === id)?.CountryName || `Country #${id}`;
-  const getStateName = (id) => states.find(s => s.StateId === id)?.StateName || (id ? `State #${id}` : '—');
+  const getCountryName = (id) => countries.find(c => String(c.CountryId) === String(id))?.CountryName || `Country #${id}`;
+  const getStateName = (id) => allStates.find(s => String(s.StateId) === String(id))?.StateName || (id ? `State #${id}` : '—');
 
   return (
     <div className="container-fluid p-0">
@@ -249,14 +291,39 @@ const DistrictMasterPage = () => {
                         </div>
                       </td>
                       <td>
-                        <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-3">
-                          {d.State?.StateName || getStateName(d.StateId)}
-                        </span>
+                        {editing ? (
+                          <Form.Select
+                            size="sm"
+                            value={editForm.state_id || ''}
+                            onChange={e => setEditForm(f => ({ ...f, state_id: e.target.value }))}
+                            className="shadow-none"
+                            disabled={!editForm.country_id}
+                          >
+                            <option value="">Select State</option>
+                            {editStates.map(s => <option key={s.StateId} value={s.StateId}>{s.StateName}</option>)}
+                          </Form.Select>
+                        ) : (
+                          <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-3">
+                            {d.State?.StateName || getStateName(d.StateId)}
+                          </span>
+                        )}
                       </td>
                       <td>
-                        <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-3">
-                          {d.Country?.CountryName || getCountryName(d.CountryId)}
-                        </span>
+                        {editing ? (
+                          <Form.Select
+                            size="sm"
+                            value={editForm.country_id || ''}
+                            onChange={e => handleEditCountryChange(e.target.value)}
+                            className="shadow-none"
+                          >
+                            <option value="">Select Country</option>
+                            {countries.map(c => <option key={c.CountryId} value={c.CountryId}>{c.CountryName}</option>)}
+                          </Form.Select>
+                        ) : (
+                          <span className="badge bg-secondary bg-opacity-10 text-secondary fw-normal rounded-pill px-3">
+                            {d.Country?.CountryName || getCountryName(d.CountryId)}
+                          </span>
+                        )}
                       </td>
                       <td className="text-center">
                         {editing
