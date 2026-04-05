@@ -2,7 +2,7 @@ import apiClient from '../../../lib/apiClient';
 
 export const getFys = async (queryParams = new URLSearchParams()) => {
     try {
-        const response = await apiClient.get(`/api/v1/inventory/fys?${queryParams.toString()}`);
+        const response = await apiClient.get(`/api/v1/inventory/fy?${queryParams.toString()}`);
         return {
             success: true,
             data: response.data || response || [],
@@ -18,7 +18,7 @@ export const getFys = async (queryParams = new URLSearchParams()) => {
 
 export const getFysForDropdown = async () => {
     try {
-        const response = await apiClient.get('/api/v1/inventory/fys/dropdown');
+        const response = await apiClient.get('/api/v1/inventory/fy/dropdown');
         return {
             success: true,
             data: response.data || response || []
@@ -33,7 +33,7 @@ export const getFysForDropdown = async () => {
 
 export const getFyById = async (id) => {
     try {
-        const response = await apiClient.get(`/api/v1/inventory/fys/${id}`);
+        const response = await apiClient.get(`/api/v1/inventory/fy/${id}`);
         return { success: true, data: response.data || response };
     } catch (error) {
         return {
@@ -45,7 +45,7 @@ export const getFyById = async (id) => {
 
 export const createFy = async (fyData) => {
     try {
-        const response = await apiClient.post('/api/v1/inventory/fys', fyData);
+        const response = await apiClient.post('/api/v1/inventory/fy', fyData);
         return { success: true, data: response.data || response, message: 'Financial Year created successfully' };
     } catch (error) {
         return {
@@ -57,7 +57,7 @@ export const createFy = async (fyData) => {
 
 export const updateFy = async (id, fyData) => {
     try {
-        const response = await apiClient.put(`/api/v1/inventory/fys/${id}`, fyData);
+        const response = await apiClient.put(`/api/v1/inventory/fy/${id}`, fyData);
         return { success: true, data: response.data || response, message: 'Financial Year updated successfully' };
     } catch (error) {
         return {
@@ -69,7 +69,7 @@ export const updateFy = async (id, fyData) => {
 
 export const deleteFy = async (id) => {
     try {
-        const response = await apiClient.delete(`/api/v1/inventory/fys/${id}`);
+        const response = await apiClient.delete(`/api/v1/inventory/fy/${id}`);
         return { success: true, data: response.data || response, message: 'Financial Year deleted successfully' };
     } catch (error) {
         return {
