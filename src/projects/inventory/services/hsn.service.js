@@ -79,18 +79,27 @@ const getHsnDropdown = async () => {
  */
 const getHsnById = async (id) => {
     try {
-        const result = await callProcedure('sp_get_hsn_by_id', { id });
-        if (!result.data || result.data.length === 0) throw new NotFoundException('HSN Code');
+        // Try numeric ID first if it looks like one, otherwise assume id is hsn_code
+        const queryParams = isNaN(id) || id > 999999 ? { hsn_code: id.toString() } : { id: parseInt(id) };
+        const result = await callProcedure('sp_get_hsn_by_id_alt', queryParams); // Using alt or conditional logic in DB
+        
+        if (!result.data || result.data.length === 0) {
+            // Fallback to searching by hsn_code if numeric ID failed or wasn't provided
+            const searchResult = await callProcedure('sp_get_hsn_codes', { search: id.toString(), limit: 1 });
+            if (!searchResult.data || searchResult.data.length === 0) throw new NotFoundException('HSN Code');
+            return searchResult.data[0];
+        }
         return result.data[0];
     } catch (error) {
         if (isProcedureNotFound(error)) {
-            const found = DEMO_HSN.find(h => h.id === id);
+            const found = DEMO_HSN.find(h => h.id === id || h.hsn_code === id.toString());
             if (!found) throw new NotFoundException('HSN Code');
             return found;
         }
         throw error;
     }
 };
+
 
 /**
  * Create new HSN code
@@ -134,24 +143,33 @@ const createHsn = async (data, createdBy) => {
  * Update HSN code
  */
 const updateHsn = async (id, data, updatedBy) => {
-    await getHsnById(id); // Check exists
+    const existing = await getHsnById(id);
+    const actualId = existing.id || existing.Id || id;
 
     const { hsn_code, description, tax_rate, is_active } = data;
 
-    logger.info('Updating HSN code', { id });
+    logger.info('Updating HSN code', { id, actualId });
 
     try {
-        const result = await callProcedure('sp_update_hsn', { id, hsn_code, description, tax_rate, is_active, updated_by: updatedBy });
+        const result = await callProcedure('sp_update_hsn', { 
+            id: isNaN(actualId) ? 0 : parseInt(actualId), 
+            hsn_code: hsn_code || existing.hsn_code, 
+            description, 
+            tax_rate, 
+            is_active, 
+            updated_by: updatedBy 
+        });
         return result.data || { id, ...data, updated_at: new Date().toISOString() };
     } catch (error) {
         if (isProcedureNotFound(error)) {
-            const idx = DEMO_HSN.findIndex(h => h.id === id);
+            const idx = DEMO_HSN.findIndex(h => h.id === id || h.hsn_code === id.toString());
             if (idx > -1) Object.assign(DEMO_HSN[idx], { hsn_code, description, tax_rate, is_active });
             return DEMO_HSN[idx] || { id, ...data };
         }
         throw error;
     }
 };
+
 
 /**
  * Soft delete HSN code

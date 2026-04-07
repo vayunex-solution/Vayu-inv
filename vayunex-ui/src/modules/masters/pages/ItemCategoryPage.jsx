@@ -25,9 +25,13 @@ const ItemCategoryPage = () => {
   };
 
   const norm = (res) => {
-    if (Array.isArray(res)) return res;
-    if (Array.isArray(res?.data)) return res.data;
-    return [];
+    const raw = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+    return raw.map(c => ({
+      id: c.id ?? c.Id ?? c.CategoryId ?? c.ID,
+      name: c.name ?? c.Name ?? c.CategoryName ?? '',
+      description: c.description ?? c.Description ?? '',
+      is_active: c.is_active ?? c.IsActive ?? 1
+    }));
   };
 
   const fetchCategories = useCallback(async () => {
@@ -48,8 +52,13 @@ const ItemCategoryPage = () => {
   // ─── Inline Edit ───────────────────────────────────────
   const handleDoubleClick = (cat) => {
     setEditingId(cat.id);
-    setEditForm({ name: cat.name, description: cat.description || '', is_active: cat.is_active ?? 1 });
+    setEditForm({ 
+      name: cat.name, 
+      description: cat.description || '', 
+      is_active: cat.is_active === 'Y' || cat.is_active === 1 || cat.is_active === true ? 1 : 0 
+    });
   };
+
   const cancelEdit = () => { setEditingId(null); setEditForm({}); };
 
   const saveEdit = async (id) => {
@@ -209,11 +218,16 @@ const ItemCategoryPage = () => {
                             <option value={0}>Inactive</option>
                           </Form.Select>
                         ) : (
-                          <Badge bg={cat.is_active ? 'success' : 'secondary'} className="bg-opacity-20 rounded-pill px-3 py-2" style={{ color: cat.is_active ? '#198754' : '#6c757d' }}>
+                          <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{ 
+                            backgroundColor: cat.is_active ? '#dcfce7' : '#f3f4f6', 
+                            color: cat.is_active ? '#166534' : '#374151',
+                            fontSize: '0.75rem' 
+                          }}>
                             {cat.is_active ? 'Active' : 'Inactive'}
                           </Badge>
                         )}
                       </td>
+
                       <td className="text-end">
                         {isEditing ? (
                           <div className="d-flex justify-content-end gap-2">

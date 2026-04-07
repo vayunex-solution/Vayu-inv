@@ -1,10 +1,10 @@
 // src/modules/inventory/pages/ItemsListPage.jsx
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner } from 'react-bootstrap';
-import { Plus, Search, Edit, Eye, Package, Check, X } from 'lucide-react';
-import { getItems, updateItem, getItemCategories } from '../services/inventoryService';
+import { Plus, Search, Edit, Eye, Package, Check, X, AlertCircle } from 'lucide-react';
+import { getItems, updateItem, getItemCategories, createItem } from '../services/inventoryService';
 import { getHsnDropdown } from '../services/hsnService';
 import { useTabStore, useFyStore } from '../../../lib';
+
 
 const ItemsListPage = () => {
   const [items, setItems] = useState([]);
@@ -21,8 +21,31 @@ const ItemsListPage = () => {
   const [editForm, setEditForm] = useState({});
   const [savingId, setSavingId] = useState(null);
 
+  // Add Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({
+    item_name: '',
+    item_code: '',
+    category_id: '',
+    hsn_code: '',
+    tax_rate: 0,
+    unit: 'PCS',
+    unit_price: '',
+    quantity: '',
+    reorder_level: 5,
+    description: ''
+  });
+  const [addSaving, setAddSaving] = useState(false);
+  const [alert, setAlert] = useState(null);
+
   const { openTab } = useTabStore();
   const { selectedFyId } = useFyStore();
+
+  const showAlert = (msg, type = 'success') => {
+    setAlert({ msg, type });
+    setTimeout(() => setAlert(null), 4000);
+  };
+
 
   const fetchItems = async (page = 1) => {
     setLoading(true);
@@ -50,18 +73,35 @@ const ItemsListPage = () => {
   useEffect(() => {
     fetchItems(1);
 
-    // Fetch categories from item-categories endpoint
+    // Fetch categories with normalization
     const fetchCats = async () => {
       const catRes = await getItemCategories();
-      if (catRes.success) setCategories(catRes.data);
+      if (catRes.success) {
+        const raw = Array.isArray(catRes.data) ? catRes.data : (Array.isArray(catRes.data?.data) ? catRes.data.data : []);
+        const norm = raw.map(c => ({
+          id: c.id ?? c.Id ?? c.CategoryId ?? c.ID,
+          name: c.name ?? c.Name ?? c.CategoryName ?? ''
+        }));
+        setCategories(norm);
+      }
     };
-    // Fetch HSN dropdown
+    // Fetch HSN with normalization
     const fetchHsn = async () => {
       const hsnRes = await getHsnDropdown();
-      if (hsnRes.success) setHsnCodes(hsnRes.data);
+      if (hsnRes.success) {
+        const raw = Array.isArray(hsnRes.data) ? hsnRes.data : (Array.isArray(hsnRes.data?.data) ? hsnRes.data.data : []);
+        const norm = raw.map(h => ({
+          id: h.id ?? h.Id ?? h.HsnId ?? h.ID,
+          hsn_code: h.hsn_code ?? h.HSNCode ?? h.HsnCode ?? '',
+          description: h.description ?? h.Description ?? '',
+          tax_rate: parseFloat(h.tax_rate ?? h.TaxRate ?? h.GST_Rate ?? 0)
+        }));
+        setHsnCodes(norm);
+      }
     };
     fetchCats();
     fetchHsn();
+
   }, [search, categoryFilter, hsnFilter, selectedFyId]);
 
   const handleViewItem = (item) => {
@@ -105,7 +145,9 @@ const ItemsListPage = () => {
       const res = await updateItem(id, editForm);
       if (!res.success) {
         fetchItems(pagination.page);
-        alert('Failed to save changes');
+        showAlert(res.error?.message || 'Failed to save changes', 'danger');
+      } else {
+        showAlert('Item updated successfully');
       }
     } finally {
       setSavingId(null);
@@ -113,18 +155,80 @@ const ItemsListPage = () => {
     }
   };
 
+  // --- Add Item Logic ---
+  const handleOpenAdd = () => {
+    setAddForm({
+      item_name: '',
+      item_code: `ITM${Math.floor(1000 + Math.random() * 9000)}`,
+      category_id: categories[0]?.id || '',
+      hsn_code: '',
+      tax_rate: 0,
+      unit: 'PCS',
+      unit_price: '',
+      quantity: '',
+      reorder_level: 5,
+      description: ''
+    });
+    setShowAddModal(true);
+  };
+
+  const handleHsnChange = (code) => {
+    const selected = hsnCodes.find(h => h.hsn_code === code);
+    setAddForm(prev => ({
+      ...prev,
+      hsn_code: code,
+      tax_rate: selected ? selected.tax_rate : prev.tax_rate
+    }));
+  };
+
+  const handleAddSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!addForm.item_name || !addForm.item_code) {
+      showAlert('Item Name and Code are required', 'danger');
+      return;
+    }
+    setAddSaving(true);
+    try {
+      const res = await createItem(addForm);
+      if (res.success) {
+        showAlert('Item added successfully');
+        setShowAddModal(false);
+        fetchItems(1);
+      } else {
+        showAlert(res.error?.message || 'Failed to add item', 'danger');
+      }
+    } catch (err) {
+      showAlert('An unexpected error occurred', 'danger');
+    } finally {
+      setAddSaving(false);
+    }
+  };
+
+
   return (
     <div className="container-fluid p-0">
+      {/* Alert */}
+      {alert && (
+        <div className={`alert alert-${alert.type} alert-dismissible position-fixed top-0 end-0 m-3 shadow-lg fade show`} style={{ zIndex: 9999 }}>
+          <div className="d-flex align-items-center gap-2">
+            {alert.type === 'danger' ? <AlertCircle size={18} /> : <Check size={18} />}
+            {alert.msg}
+          </div>
+          <button type="button" className="btn-close" onClick={() => setAlert(null)} />
+        </div>
+      )}
+
       {/* Header */}
       <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
         <div>
-          <h4 className="fw-bold mb-1 gradient-text">Inventory Items</h4>
-          <p className="text-muted small mb-0">{pagination.total ?? items.length} items found</p>
+          <h4 className="fw-bold mb-1 gradient-text">Inventory Items Master</h4>
+          <p className="text-muted small mb-0">{pagination.total ?? items.length} items configured in system</p>
         </div>
-        <Button variant="primary" className="btn-glossy d-flex align-items-center gap-2 rounded-pill shadow-sm">
+        <Button variant="primary" className="btn-glossy d-flex align-items-center gap-2 rounded-pill shadow-sm" onClick={handleOpenAdd}>
           <Plus size={18} /> Add New Item
         </Button>
       </div>
+
 
       {/* Filters (Glassmorphism Card) */}
       <Card className="glass-card mb-4 border-0">
@@ -322,9 +426,17 @@ const ItemsListPage = () => {
                           <div className="fw-bold">{item.item_name}</div>
                           <small className="font-monospace text-primary bg-primary bg-opacity-10 px-1 rounded">{item.item_code}</small>
                         </div>
-                        <Badge bg={isLowStock ? 'danger' : 'success'} className="bg-opacity-25" style={{ color: isLowStock ? '#dc3545' : '#198754' }}>
-                           {isLowStock ? 'Low Stock' : 'Active'}
+                        <Badge 
+                          className="border-0 rounded-pill px-2 py-1 fw-bold" 
+                          style={{ 
+                            backgroundColor: isLowStock ? '#fee2e2' : '#dcfce7', 
+                            color: isLowStock ? '#991b1b' : '#166534',
+                            fontSize: '0.65rem'
+                          }}
+                        >
+                           {isLowStock ? 'LOW STOCK' : 'ACTIVE'}
                         </Badge>
+
                      </div>
                      
                      {isEditing ? (
@@ -387,10 +499,148 @@ const ItemsListPage = () => {
         )}
       </Card>
       
-      <div className="d-flex justify-content-center mt-4">
-          <small className="text-muted text-center d-block">✨ Tip: Double tap any item row to quick edit</small>
+      <div className="d-flex justify-content-center mt-4 pb-5">
+          <small className="text-muted text-center d-block">✨ Tip: Double tap any item row to quick edit stocks and prices</small>
       </div>
+
+      {/* Add Item Modal */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered size="lg">
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold fs-5 d-flex align-items-center gap-2">
+            <Package size={22} className="text-primary" /> Add New Inventory Item
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-3">
+          <Form onSubmit={handleAddSubmit}>
+            <Row className="g-3">
+              <Col xs={12} md={8}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">Item Name <span className="text-danger">*</span></Form.Label>
+                  <Form.Control 
+                    placeholder="e.g. Dell Latitude 5420 Laptop"
+                    value={addForm.item_name}
+                    onChange={e => setAddForm(p => ({ ...p, item_name: e.target.value }))}
+                    autoFocus
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={4}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">Item Code (SKU) <span className="text-danger">*</span></Form.Label>
+                  <Form.Control 
+                    placeholder="e.g. ITM001"
+                    value={addForm.item_code}
+                    onChange={e => setAddForm(p => ({ ...p, item_code: e.target.value }))}
+                  />
+                </Form.Group>
+              </Col>
+
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">Category</Form.Label>
+                  <Form.Select value={addForm.category_id} onChange={e => setAddForm(p => ({ ...p, category_id: e.target.value }))}>
+                    <option value="">Select Category</option>
+                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">Unit of Measure</Form.Label>
+                  <Form.Select value={addForm.unit} onChange={e => setAddForm(p => ({ ...p, unit: e.target.value }))}>
+                    <option value="PCS">PCS (Pieces)</option>
+                    <option value="KG">KG (Kilograms)</option>
+                    <option value="LTR">LTR (Liters)</option>
+                    <option value="MTR">MTR (Meters)</option>
+                    <option value="BOX">BOX</option>
+                    <option value="SET">SET</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+
+              <Col xs={12} md={4}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">HSN Code</Form.Label>
+                  <Form.Select value={addForm.hsn_code} onChange={e => handleHsnChange(e.target.value)}>
+                    <option value="">No HSN</option>
+                    {hsnCodes.map(h => (
+                      <option key={h.hsn_code} value={h.hsn_code}>
+                        {h.hsn_code} {h.description ? `(${h.description.substring(0, 30)}...)` : ''}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={4}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">GST Tax Rate (%)</Form.Label>
+                  <Form.Control 
+                    type="number"
+                    value={addForm.tax_rate}
+                    onChange={e => setAddForm(p => ({ ...p, tax_rate: parseFloat(e.target.value) }))}
+                    placeholder="Auto-filled from HSN"
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={4}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">Reorder Level</Form.Label>
+                  <Form.Control 
+                    type="number"
+                    value={addForm.reorder_level}
+                    onChange={e => setAddForm(p => ({ ...p, reorder_level: parseInt(e.target.value) }))}
+                  />
+                  <Form.Text className="text-muted smaller">Notify when stock below this</Form.Text>
+                </Form.Group>
+              </Col>
+
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">Unit Price (₹)</Form.Label>
+                  <Form.Control 
+                    type="number"
+                    placeholder="0.00"
+                    value={addForm.unit_price}
+                    onChange={e => setAddForm(p => ({ ...p, unit_price: e.target.value }))}
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">Initial Stock Quantity</Form.Label>
+                  <Form.Control 
+                    type="number"
+                    placeholder="0"
+                    value={addForm.quantity}
+                    onChange={e => setAddForm(p => ({ ...p, quantity: e.target.value }))}
+                  />
+                </Form.Group>
+              </Col>
+
+              <Col xs={12}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold small">Description</Form.Label>
+                  <Form.Control 
+                    as="textarea"
+                    rows={2}
+                    placeholder="Product details, dimensions, warranty info..."
+                    value={addForm.description}
+                    onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button variant="light" className="rounded-pill px-4" onClick={() => setShowAddModal(false)} disabled={addSaving}>Cancel</Button>
+          <Button variant="primary" className="btn-glossy rounded-pill px-4 shadow-sm" onClick={handleAddSubmit} disabled={addSaving}>
+            {addSaving ? <><Spinner size="sm" animation="border" className="me-2" />Adding...</> : <><Check size={18} className="me-1" />Save Item</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
+
   );
 };
 

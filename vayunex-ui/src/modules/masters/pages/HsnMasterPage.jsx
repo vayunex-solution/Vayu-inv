@@ -27,10 +27,20 @@ const HsnMasterPage = () => {
   };
 
   const norm = (res) => {
-    if (Array.isArray(res)) return res;
-    if (Array.isArray(res?.data)) return res.data;
-    return [];
+    const raw = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
+    return raw.map(h => {
+      // Use hsn_code as ID if id is missing/undefined/0
+      const id = h.id ?? h.Id ?? h.HsnId ?? h.ID ?? h.hsn_code ?? h.HSNCode;
+      return {
+        id: id,
+        hsn_code: h.hsn_code ?? h.HSNCode ?? h.HsnCode ?? '',
+        description: h.description ?? h.Description ?? h.HSNDescription ?? '',
+        tax_rate: parseFloat(h.tax_rate ?? h.TaxRate ?? h.GST_Rate ?? 0),
+        is_active: h.is_active ?? h.IsActive ?? 1
+      };
+    });
   };
+
 
   const fetchHsn = useCallback(async () => {
     setLoading(true);
@@ -53,10 +63,11 @@ const HsnMasterPage = () => {
     setEditForm({
       hsn_code: hsn.hsn_code,
       description: hsn.description || '',
-      tax_rate: hsn.tax_rate ?? 0,
-      is_active: hsn.is_active ?? 1
+      tax_rate: hsn.tax_rate,
+      is_active: hsn.is_active === 'Y' || hsn.is_active === 1 || hsn.is_active === true ? 1 : 0
     });
   };
+
   const cancelEdit = () => { setEditingId(null); setEditForm({}); };
 
   const saveEdit = async (id) => {
@@ -113,12 +124,13 @@ const HsnMasterPage = () => {
   };
 
   const getTaxBadgeColor = (rate) => {
-    if (rate === 0) return { bg: 'secondary', text: '#6c757d' };
-    if (rate <= 5) return { bg: 'success', text: '#198754' };
-    if (rate <= 12) return { bg: 'info', text: '#0dcaf0' };
-    if (rate <= 18) return { bg: 'warning', text: '#fd7e14' };
-    return { bg: 'danger', text: '#dc3545' };
+    if (rate === 0) return { bg: '#f3f4f6', text: '#374151' }; // Grey
+    if (rate <= 5) return { bg: '#dcfce7', text: '#166534' }; // Green
+    if (rate <= 12) return { bg: '#dbeafe', text: '#1e40af' }; // Blue
+    if (rate <= 18) return { bg: '#fef3c7', text: '#92400e' }; // Amber
+    return { bg: '#fee2e2', text: '#991b1b' }; // Red
   };
+
 
   return (
     <div className="container-fluid p-0">
@@ -225,8 +237,8 @@ const HsnMasterPage = () => {
                             {TAX_SLABS.map(t => <option key={t} value={t}>{t}%</option>)}
                           </Form.Select>
                         ) : (
-                          <Badge bg={taxColors.bg} className="bg-opacity-15 rounded-pill px-3 py-2 fw-semibold" style={{ color: taxColors.text }}>
-                            <Percent size={11} className="me-1" />{hsn.tax_rate ?? 0}%
+                          <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{ backgroundColor: taxColors.bg, color: taxColors.text, fontSize: '0.75rem' }}>
+                            <Percent size={10} className="me-1" />{hsn.tax_rate ?? 0}%
                           </Badge>
                         )}
                       </td>
@@ -237,11 +249,16 @@ const HsnMasterPage = () => {
                             <option value={0}>Inactive</option>
                           </Form.Select>
                         ) : (
-                          <Badge bg={hsn.is_active ? 'success' : 'secondary'} className="bg-opacity-15 rounded-pill px-3 py-2" style={{ color: hsn.is_active ? '#198754' : '#6c757d' }}>
+                          <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{ 
+                            backgroundColor: hsn.is_active ? '#dcfce7' : '#f3f4f6', 
+                            color: hsn.is_active ? '#166534' : '#374151',
+                            fontSize: '0.75rem' 
+                          }}>
                             {hsn.is_active ? 'Active' : 'Inactive'}
                           </Badge>
                         )}
                       </td>
+
                       <td className="text-end">
                         {isEditing ? (
                           <div className="d-flex justify-content-end gap-2">
