@@ -4,20 +4,9 @@
  * Supports HSN Code, Tax Rate, Barcode fields
  */
 const { callProcedure } = require('../../../core/database');
-const { NotFoundException, DatabaseException } = require('../../../core/exceptions');
+const { NotFoundException } = require('../../../core/exceptions');
 const logger = require('../../../core/logger');
 const { ItemModel } = require('../models/item.model');
-
-/**
- * Check if error is related to missing stored procedure
- */
-const isProcedureNotFound = (error) => {
-    const msg = (error.message || '').toLowerCase();
-    return msg.includes('procedure') || 
-           msg.includes('not found') ||
-           error.code === 'ER_SP_DOES_NOT_EXIST' ||
-           error instanceof NotFoundException;
-};
 
 /**
  * Get all items with pagination and filters
@@ -47,12 +36,10 @@ const getItems = async (params = {}) => {
         hsn_code
     };
 
-    logger.debug('Fetching items', input);
+    logger.debug('Fetching items from database', input);
 
     try {
         const result = await callProcedure('sp_get_items', input);
-
-        // Handle result - stored procedure should return items and count
         const items = result.data || [];
 
         return {
@@ -64,66 +51,9 @@ const getItems = async (params = {}) => {
             }
         };
     } catch (error) {
-        // Demo fallback - return sample data if procedure doesn't exist
-        if (isProcedureNotFound(error)) {
-            logger.warn('sp_get_items not found, returning demo data');
-            return getDemoItems(input);
-        }
+        logger.error('Error fetching items from database', { error: error.message });
         throw error;
     }
-};
-
-/**
- * Demo items for testing
- */
-const getDemoItems = (params) => {
-    const demoItems = [
-        {
-            id: 1,
-            item_code: 'ITM001',
-            item_name: 'Sample Item 1',
-            description: 'This is a sample item',
-            category_id: 1,
-            category_name: 'General',
-            unit: 'PCS',
-            unit_price: 100.00,
-            quantity: 50,
-            reorder_level: 10,
-            hsn_code: '8471',
-            tax_rate: 18.00,
-            barcode: null,
-            status: 'active',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        },
-        {
-            id: 2,
-            item_code: 'ITM002',
-            item_name: 'Sample Item 2',
-            description: 'Another sample item',
-            category_id: 1,
-            category_name: 'General',
-            unit: 'KG',
-            unit_price: 250.50,
-            quantity: 100,
-            reorder_level: 20,
-            hsn_code: '3926',
-            tax_rate: 12.00,
-            barcode: null,
-            status: 'active',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        }
-    ];
-
-    return {
-        items: demoItems,
-        pagination: {
-            page: params.page,
-            limit: params.limit,
-            total: demoItems.length
-        }
-    };
 };
 
 /**
@@ -132,25 +62,18 @@ const getDemoItems = (params) => {
  * @returns {Promise<Object>} Item data
  */
 const getItemById = async (id) => {
-    logger.debug('Fetching item by ID', { id });
+    logger.debug('Fetching item by ID from database', { id });
 
     try {
         const result = await callProcedure('sp_get_item_by_id', { id });
 
         if (!result.data || result.data.length === 0) {
-            throw new NotFoundException('Item');
+            throw new NotFoundException('Item not found in database');
         }
 
         return result.data[0];
     } catch (error) {
-        // Demo fallback
-        if (isProcedureNotFound(error)) {
-            logger.warn('sp_get_item_by_id not found, returning demo data');
-            if (id === 1 || id === 2) {
-                return getDemoItems({}).items[id - 1];
-            }
-            throw new NotFoundException('Item');
-        }
+        logger.error('Error fetching item by ID', { id, error: error.message });
         throw error;
     }
 };
@@ -164,26 +87,13 @@ const createItem = async (data) => {
     const itemModel = new ItemModel(data);
     itemModel.validateForCreate();
 
-    logger.info('Creating item', { item_code: data.item_code, hsn_code: data.hsn_code });
+    logger.info('Creating item in database', { item_code: data.item_code });
 
     try {
         const result = await callProcedure('sp_create_item', itemModel.toCreateJSON());
-
-        logger.info('Item created successfully', { item_code: data.item_code });
-
         return result.data;
     } catch (error) {
-        // Demo fallback
-        if (isProcedureNotFound(error)) {
-            const demoResult = {
-                ...itemModel.toCreateJSON(),
-                id: Math.floor(Math.random() * 1000) + 100,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-            logger.info('Demo item created', demoResult);
-            return demoResult;
-        }
+        logger.error('Error creating item', { item_code: data.item_code, error: error.message });
         throw error;
     }
 };
@@ -195,25 +105,16 @@ const createItem = async (data) => {
  * @returns {Promise<Object>} Updated item
  */
 const updateItem = async (id, data) => {
-    // First check if item exists
-    await getItemById(id);
-
     const itemModel = new ItemModel(data);
     itemModel.validateForUpdate();
 
-    logger.info('Updating item', { id, hsn_code: data.hsn_code });
+    logger.info('Updating item in database', { id });
 
     try {
         const result = await callProcedure('sp_update_item', itemModel.toUpdateJSON(id));
-
-        logger.info('Item updated successfully', { id });
-
         return result.data || { id, ...data, updated_at: new Date().toISOString() };
     } catch (error) {
-        // Demo fallback
-        if (isProcedureNotFound(error)) {
-            return { id, ...data, updated_at: new Date().toISOString() };
-        }
+        logger.error('Error updating item', { id, error: error.message });
         throw error;
     }
 };
@@ -224,22 +125,13 @@ const updateItem = async (id, data) => {
  * @returns {Promise<boolean>} Success status
  */
 const deleteItem = async (id) => {
-    // First check if item exists
-    await getItemById(id);
-
-    logger.info('Deleting item', { id });
+    logger.info('Deleting item in database', { id });
 
     try {
         await callProcedure('sp_delete_item', { id });
-
-        logger.info('Item deleted successfully', { id });
-
         return true;
     } catch (error) {
-        // Demo fallback
-        if (isProcedureNotFound(error)) {
-            return true;
-        }
+        logger.error('Error deleting item', { id, error: error.message });
         throw error;
     }
 };
@@ -253,14 +145,8 @@ const getCategories = async () => {
         const result = await callProcedure('sp_get_item_categories', {});
         return result.data || [];
     } catch (error) {
-        // Demo fallback
-        return [
-            { id: 1, name: 'General', description: 'General items' },
-            { id: 2, name: 'Electronics', description: 'Electronic items' },
-            { id: 3, name: 'Consumables', description: 'Consumable items' },
-            { id: 4, name: 'Raw Materials', description: 'Raw materials for production' },
-            { id: 5, name: 'Finished Goods', description: 'Ready for sale items' }
-        ];
+        logger.error('Error fetching categories from database', { error: error.message });
+        throw error;
     }
 };
 
@@ -270,17 +156,11 @@ const getCategories = async () => {
  * @returns {Promise<Array>} Items matching the HSN code
  */
 const getItemsByHsnCode = async (hsn_code) => {
-    logger.debug('Fetching items by HSN code', { hsn_code });
-
     try {
         const result = await callProcedure('sp_get_items_by_hsn', { hsn_code });
         return result.data || [];
     } catch (error) {
-        if (isProcedureNotFound(error)) {
-            logger.warn('sp_get_items_by_hsn not found, falling back to getItems filter');
-            const fallback = await getItems({ search: hsn_code });
-            return fallback.items.filter(i => i.hsn_code === hsn_code);
-        }
+        logger.error('Error fetching items by HSN code', { hsn_code, error: error.message });
         throw error;
     }
 };
@@ -294,16 +174,7 @@ const getHsnList = async () => {
         const result = await callProcedure('sp_get_hsn_list', {});
         return result.data || [];
     } catch (error) {
-        if (isProcedureNotFound(error)) {
-            // Demo fallback
-            return [
-                { hsn_code: '8471', description: 'Computers and peripherals', tax_rate: 18 },
-                { hsn_code: '3926', description: 'Plastic articles', tax_rate: 12 },
-                { hsn_code: '7318', description: 'Screws, bolts and nuts', tax_rate: 18 },
-                { hsn_code: '8544', description: 'Insulated wire and cable', tax_rate: 18 },
-                { hsn_code: '9013', description: 'Liquid crystal devices', tax_rate: 18 }
-            ];
-        }
+        logger.error('Error fetching HSN list from database', { error: error.message });
         throw error;
     }
 };
@@ -318,3 +189,4 @@ module.exports = {
     getItemsByHsnCode,
     getHsnList
 };
+
