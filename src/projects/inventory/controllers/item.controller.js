@@ -1,6 +1,7 @@
 /**
  * Item Controller
  * HTTP request handling for item endpoints
+ * Includes HSN Code management
  */
 const { asyncHandler } = require('../../../core/exceptions');
 const { successResponse, createdResponse, noContentResponse, paginatedResponse } = require('../../../core/utils');
@@ -77,11 +78,35 @@ const getCategories = asyncHandler(async (req, res) => {
     return successResponse(res, categories, 'Categories retrieved successfully');
 });
 
+/**
+ * Get all unique HSN codes used in Item Master
+ * GET /api/v1/inventory/hsn
+ */
+const getHsnList = asyncHandler(async (req, res) => {
+    const hsnList = await itemService.getHsnList();
+
+    return successResponse(res, hsnList, 'HSN codes retrieved successfully');
+});
+
+/**
+ * Get items by HSN code
+ * GET /api/v1/inventory/hsn/:hsn_code/items
+ */
+const getItemsByHsnCode = asyncHandler(async (req, res) => {
+    const { hsn_code } = req.params;
+
+    const items = await itemService.getItemsByHsnCode(hsn_code);
+
+    return successResponse(res, items, 'Items retrieved successfully');
+});
+
 module.exports = {
     getItems,
     getItemById,
     createItem,
     updateItem,
     deleteItem,
-    getCategories
+    getCategories,
+    getHsnList,
+    getItemsByHsnCode
 };

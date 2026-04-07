@@ -1,6 +1,7 @@
 /**
  * Item Service
  * Business logic for item management
+ * Supports HSN Code, Tax Rate, Barcode fields
  */
 const { callProcedure } = require('../../../core/database');
 const { NotFoundException, DatabaseException } = require('../../../core/exceptions');
@@ -31,7 +32,8 @@ const getItems = async (params = {}) => {
         category_id = null,
         status = null,
         sort_by = 'id',
-        sort_order = 'desc'
+        sort_order = 'desc',
+        hsn_code = null
     } = params;
 
     const input = {
@@ -41,7 +43,8 @@ const getItems = async (params = {}) => {
         category_id,
         status,
         sort_by,
-        sort_order
+        sort_order,
+        hsn_code
     };
 
     logger.debug('Fetching items', input);
@@ -86,6 +89,9 @@ const getDemoItems = (params) => {
             unit_price: 100.00,
             quantity: 50,
             reorder_level: 10,
+            hsn_code: '8471',
+            tax_rate: 18.00,
+            barcode: null,
             status: 'active',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -101,6 +107,9 @@ const getDemoItems = (params) => {
             unit_price: 250.50,
             quantity: 100,
             reorder_level: 20,
+            hsn_code: '3926',
+            tax_rate: 12.00,
+            barcode: null,
             status: 'active',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -155,7 +164,7 @@ const createItem = async (data) => {
     const itemModel = new ItemModel(data);
     itemModel.validateForCreate();
 
-    logger.info('Creating item', { item_code: data.item_code });
+    logger.info('Creating item', { item_code: data.item_code, hsn_code: data.hsn_code });
 
     try {
         const result = await callProcedure('sp_create_item', itemModel.toCreateJSON());
@@ -192,7 +201,7 @@ const updateItem = async (id, data) => {
     const itemModel = new ItemModel(data);
     itemModel.validateForUpdate();
 
-    logger.info('Updating item', { id });
+    logger.info('Updating item', { id, hsn_code: data.hsn_code });
 
     try {
         const result = await callProcedure('sp_update_item', itemModel.toUpdateJSON(id));
@@ -248,8 +257,54 @@ const getCategories = async () => {
         return [
             { id: 1, name: 'General', description: 'General items' },
             { id: 2, name: 'Electronics', description: 'Electronic items' },
-            { id: 3, name: 'Consumables', description: 'Consumable items' }
+            { id: 3, name: 'Consumables', description: 'Consumable items' },
+            { id: 4, name: 'Raw Materials', description: 'Raw materials for production' },
+            { id: 5, name: 'Finished Goods', description: 'Ready for sale items' }
         ];
+    }
+};
+
+/**
+ * Search items by HSN code
+ * @param {string} hsn_code - HSN code to search for
+ * @returns {Promise<Array>} Items matching the HSN code
+ */
+const getItemsByHsnCode = async (hsn_code) => {
+    logger.debug('Fetching items by HSN code', { hsn_code });
+
+    try {
+        const result = await callProcedure('sp_get_items_by_hsn', { hsn_code });
+        return result.data || [];
+    } catch (error) {
+        if (isProcedureNotFound(error)) {
+            logger.warn('sp_get_items_by_hsn not found, falling back to getItems filter');
+            const fallback = await getItems({ search: hsn_code });
+            return fallback.items.filter(i => i.hsn_code === hsn_code);
+        }
+        throw error;
+    }
+};
+
+/**
+ * Get all unique HSN codes used in Item Master
+ * @returns {Promise<Array>} List of unique HSN codes
+ */
+const getHsnList = async () => {
+    try {
+        const result = await callProcedure('sp_get_hsn_list', {});
+        return result.data || [];
+    } catch (error) {
+        if (isProcedureNotFound(error)) {
+            // Demo fallback
+            return [
+                { hsn_code: '8471', description: 'Computers and peripherals', tax_rate: 18 },
+                { hsn_code: '3926', description: 'Plastic articles', tax_rate: 12 },
+                { hsn_code: '7318', description: 'Screws, bolts and nuts', tax_rate: 18 },
+                { hsn_code: '8544', description: 'Insulated wire and cable', tax_rate: 18 },
+                { hsn_code: '9013', description: 'Liquid crystal devices', tax_rate: 18 }
+            ];
+        }
+        throw error;
     }
 };
 
@@ -259,5 +314,7 @@ module.exports = {
     createItem,
     updateItem,
     deleteItem,
-    getCategories
+    getCategories,
+    getItemsByHsnCode,
+    getHsnList
 };

@@ -1,6 +1,7 @@
 /**
  * Item Model
  * Data model and validation for items
+ * Includes HSN Code and Tax Rate fields as per database schema
  */
 const { ValidationException } = require('../../../core/exceptions');
 
@@ -24,6 +25,10 @@ class ItemModel {
         this.quantity = parseFloat(data.quantity) || 0;
         this.reorder_level = parseFloat(data.reorder_level) || 0;
         this.status = data.status || 'active';
+        // HSN & Tax fields (from schema)
+        this.hsn_code = data.hsn_code || null;
+        this.tax_rate = parseFloat(data.tax_rate) || 0;
+        this.barcode = data.barcode || null;
     }
 
     /**
@@ -57,6 +62,18 @@ class ItemModel {
             errors.push({ field: 'unit_price', message: 'Unit price cannot be negative' });
         }
 
+        if (this.tax_rate < 0 || this.tax_rate > 100) {
+            errors.push({ field: 'tax_rate', message: 'Tax rate must be between 0 and 100' });
+        }
+
+        if (this.hsn_code && this.hsn_code.length > 20) {
+            errors.push({ field: 'hsn_code', message: 'HSN code must be 20 characters or less' });
+        }
+
+        if (this.barcode && this.barcode.length > 100) {
+            errors.push({ field: 'barcode', message: 'Barcode must be 100 characters or less' });
+        }
+
         if (errors.length > 0) {
             throw new ValidationException('Validation failed', errors);
         }
@@ -79,8 +96,16 @@ class ItemModel {
             errors.push({ field: 'unit_price', message: 'Unit price cannot be negative' });
         }
 
-        if (this.status && !['active', 'inactive'].includes(this.status)) {
-            errors.push({ field: 'status', message: 'Status must be active or inactive' });
+        if (this.status && !['active', 'inactive', 'discontinued'].includes(this.status)) {
+            errors.push({ field: 'status', message: 'Status must be active, inactive, or discontinued' });
+        }
+
+        if (this.tax_rate !== undefined && (this.tax_rate < 0 || this.tax_rate > 100)) {
+            errors.push({ field: 'tax_rate', message: 'Tax rate must be between 0 and 100' });
+        }
+
+        if (this.hsn_code && this.hsn_code.length > 20) {
+            errors.push({ field: 'hsn_code', message: 'HSN code must be 20 characters or less' });
         }
 
         if (errors.length > 0) {
@@ -105,7 +130,10 @@ class ItemModel {
             unit_price: this.unit_price,
             quantity: this.quantity,
             reorder_level: this.reorder_level,
-            status: this.status
+            status: this.status,
+            hsn_code: this.hsn_code,
+            tax_rate: this.tax_rate,
+            barcode: this.barcode
         };
     }
 
@@ -122,7 +150,10 @@ class ItemModel {
             unit: this.unit,
             unit_price: this.unit_price,
             quantity: this.quantity,
-            reorder_level: this.reorder_level
+            reorder_level: this.reorder_level,
+            hsn_code: this.hsn_code,
+            tax_rate: this.tax_rate,
+            barcode: this.barcode
         };
     }
 
@@ -141,6 +172,9 @@ class ItemModel {
         if (this.unit_price !== undefined) json.unit_price = this.unit_price;
         if (this.reorder_level !== undefined) json.reorder_level = this.reorder_level;
         if (this.status) json.status = this.status;
+        if (this.hsn_code !== undefined) json.hsn_code = this.hsn_code;
+        if (this.tax_rate !== undefined) json.tax_rate = this.tax_rate;
+        if (this.barcode !== undefined) json.barcode = this.barcode;
 
         return json;
     }
