@@ -439,6 +439,78 @@ const ItemsListPage = () => {
       <div className="d-flex justify-content-center mt-4">
           <small className="text-muted text-center d-block">✨ Tip: Double tap any item row to quick edit</small>
       </div>
+
+      {/* Add Item Modal */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered>
+        <Modal.Header closeButton className="border-0 pb-0">
+          <Modal.Title className="fw-bold">Add New Item</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Label className="fw-medium">Item Name *</Form.Label>
+                <Form.Control value={addForm.item_name} onChange={e => handleAddChange('item_name', e.target.value)} />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="fw-medium">Item Code *</Form.Label>
+                <Form.Control value={addForm.item_code} onChange={e => handleAddChange('item_code', e.target.value)} />
+              </Col>
+              <Col md={4}>
+                <Form.Label className="fw-medium">Price *</Form.Label>
+                <Form.Control type="number" value={addForm.unit_price} onChange={e => handleAddChange('unit_price', e.target.value)} />
+              </Col>
+              <Col md={4}>
+                <Form.Label className="fw-medium">Quantity *</Form.Label>
+                <Form.Control type="number" value={addForm.quantity} onChange={e => handleAddChange('quantity', e.target.value)} />
+              </Col>
+              <Col md={4}>
+                <Form.Label className="fw-medium">Unit</Form.Label>
+                <Form.Control value={addForm.unit} onChange={e => handleAddChange('unit', e.target.value)} />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="fw-medium">Category</Form.Label>
+                <Form.Select value={addForm.category_id} onChange={e => handleAddChange('category_id', e.target.value)}>
+                  <option value="">Select category</option>
+                  {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                </Form.Select>
+              </Col>
+              <Col md={6}>
+                <Form.Label className="fw-medium">HSN Code</Form.Label>
+                <Form.Select value={addForm.hsn_code} onChange={e => handleAddChange('hsn_code', e.target.value)}>
+                  <option value="">Select HSN</option>
+                  {hsnCodes.map(h => {
+                    const code = h.HSNCode || h.hsn_code || h.code;
+                    const name = h.HSNDescription || h.description || h.name;
+                    return <option key={code} value={code}>{code} {name ? `- ${name}` : ''}</option>;
+                  })}
+                </Form.Select>
+              </Col>
+              <Col md={6}>
+                <Form.Label className="fw-medium">Tax Rate (%)</Form.Label>
+                <Form.Control type="number" value={addForm.tax_rate} onChange={e => handleAddChange('tax_rate', e.target.value)} />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="fw-medium">Barcode</Form.Label>
+                <Form.Control value={addForm.barcode} onChange={e => handleAddChange('barcode', e.target.value)} />
+              </Col>
+              <Col md={6}>
+                <Form.Label className="fw-medium">Status</Form.Label>
+                <Form.Select value={addForm.status} onChange={e => handleAddChange('status', e.target.value)}>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </Form.Select>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer className="border-0 pt-0">
+          <Button variant="light" className="rounded-pill px-4" onClick={() => setShowAddModal(false)}>Cancel</Button>
+          <Button variant="primary" className="rounded-pill px-4 text-white" onClick={handleAddSubmit} disabled={addSaving}>
+            {addSaving ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : 'Add Item'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
