@@ -15,7 +15,9 @@ import {
   StateMasterPage, 
   BrandMasterPage, 
   DistrictMasterPage, 
-  FyMasterPage 
+  FyMasterPage,
+  ItemCategoryPage,
+  HsnMasterPage
 } from '../../modules/masters';
 import { Sparkles } from 'lucide-react';
 
@@ -37,6 +39,18 @@ const componentMap = {
   BRAND_MASTER: BrandMasterPage,
   DISTRICT_MASTER: DistrictMasterPage,
   FY_MASTER: FyMasterPage,
+
+  // Item Category Master — multiple key variants for safety
+  ITEM_CATEGORY: ItemCategoryPage,
+  ITEM_CATEGORY_MASTER: ItemCategoryPage,
+  item_category: ItemCategoryPage,
+  ItemCategory: ItemCategoryPage,
+
+  // HSN Master
+  HSN: HsnMasterPage,
+  HSN_MASTER: HsnMasterPage,
+  hsn: HsnMasterPage,
+  HsnMaster: HsnMasterPage,
 
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">

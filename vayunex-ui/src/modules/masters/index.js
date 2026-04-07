@@ -7,3 +7,5 @@ export { default as StateMasterPage } from './pages/StateMasterPage';
 export { default as BrandMasterPage } from './pages/BrandMasterPage';
 export { default as DistrictMasterPage } from './pages/DistrictMasterPage';
 export { default as FyMasterPage } from './pages/FyMasterPage';
+export { default as ItemCategoryPage } from './pages/ItemCategoryPage';
+export { default as HsnMasterPage } from './pages/HsnMasterPage';
