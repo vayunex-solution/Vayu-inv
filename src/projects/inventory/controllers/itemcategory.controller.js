@@ -1,10 +1,10 @@
 /**
- * HSN Controller & Routes
- * Handles API endpoints for HSN management
+ * Item Category Controller & Routes
+ * Handles API endpoints for item category management
  */
 const express = require('express');
 const router = express.Router();
-const service = require("../services/hsn/hsn.service");
+const service = require("../services/itemcategory/itemcategory.service");
 const { authenticate } = require("../../../core/auth");
 
 // --- Controller Methods ---
@@ -69,8 +69,8 @@ const remove = async (req, res) => {
 /**
  * @swagger
  * tags:
- *   name: HSN
- *   description: GST HSN management
+ *   name: Item Categories
+ *   description: Item category management
  */
 
 // Apply authentication
@@ -78,51 +78,38 @@ router.use(authenticate);
 
 /**
  * @swagger
- * /api/v1/inventory/hsn:
+ * /api/v1/inventory/item-categories:
  *   get:
- *     summary: Get all HSN codes
- *     tags: [HSN]
+ *     summary: Get all item categories
+ *     tags: [Item Categories]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of HSN codes
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                 totalRecords:
- *                   type: integer
+ *         description: List of item categories
  */
 router.get('/', getAll);
 
 /**
  * @swagger
- * /api/v1/inventory/hsn/dropdown:
+ * /api/v1/inventory/item-categories/dropdown:
  *   get:
- *     summary: Get HSN dropdown list
- *     tags: [HSN]
+ *     summary: Get item category dropdown list
+ *     tags: [Item Categories]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Dropdown list of HSN codes
+ *         description: Dropdown list of item categories
  */
 router.get('/dropdown', getDropdown);
 
 /**
  * @swagger
- * /api/v1/inventory/hsn/{id}:
+ * /api/v1/inventory/item-categories/{id}:
  *   get:
- *     summary: Get HSN by ID
- *     tags: [HSN]
+ *     summary: Get item category by ID
+ *     tags: [Item Categories]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -136,10 +123,10 @@ router.get('/:id', getById);
 
 /**
  * @swagger
- * /api/v1/inventory/hsn:
+ * /api/v1/inventory/item-categories:
  *   post:
- *     summary: Create new HSN
- *     tags: [HSN]
+ *     summary: Create new item category
+ *     tags: [Item Categories]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -149,29 +136,12 @@ router.get('/:id', getById);
  *           schema:
  *             type: object
  *             required:
- *               - hsn_code
- *               - gst_rate
+ *               - category_name
  *             properties:
- *               hsn_code:
+ *               category_name:
  *                  type: string
- *               hsn_desc:
- *                  type: string
- *               gst_rate:
- *                  type: number
- *               cgst:
- *                  type: number
- *               sgst:
- *                  type: number
- *               igst:
- *                  type: number
- *               cess:
- *                  type: number
- *               wef_date:
- *                  type: string
- *                  format: date
- *               wef_todate:
- *                  type: string
- *                  format: date
+ *               parent_id:
+ *                  type: integer
  *               is_active:
  *                  type: string
  *                  enum: [Y, N]
@@ -182,10 +152,10 @@ router.post('/', create);
 
 /**
  * @swagger
- * /api/v1/inventory/hsn/{id}:
+ * /api/v1/inventory/item-categories/{id}:
  *   put:
- *     summary: Update HSN
- *     tags: [HSN]
+ *     summary: Update item category
+ *     tags: [Item Categories]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -201,24 +171,10 @@ router.post('/', create);
  *           schema:
  *             type: object
  *             properties:
- *               hsn_code:
+ *               category_name:
  *                  type: string
- *               hsn_desc:
- *                  type: string
- *               gst_rate:
- *                  type: number
- *               cgst:
- *                  type: number
- *               sgst:
- *                  type: number
- *               igst:
- *                  type: number
- *               cess:
- *                  type: number
- *               wef_date:
- *                  type: string
- *               wef_todate:
- *                  type: string
+ *               parent_id:
+ *                  type: integer
  *               is_active:
  *                  type: string
  *               updated_by:
@@ -228,10 +184,10 @@ router.put('/:id', update);
 
 /**
  * @swagger
- * /api/v1/inventory/hsn/{id}:
+ * /api/v1/inventory/item-categories/{id}:
  *   delete:
- *     summary: Delete HSN (Soft)
- *     tags: [HSN]
+ *     summary: Delete item category (Soft)
+ *     tags: [Item Categories]
  *     security:
  *       - bearerAuth: []
  *     parameters:
