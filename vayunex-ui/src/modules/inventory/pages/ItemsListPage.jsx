@@ -1,6 +1,6 @@
 // src/modules/inventory/pages/ItemsListPage.jsx
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Pagination } from 'react-bootstrap';
+import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Pagination, Modal } from 'react-bootstrap';
 import { Plus, Search, Edit, Trash2, Eye, Package, Check, X } from 'lucide-react';
 import { getItems, updateItem, createItem } from '../services/inventoryService';
 import { getCategories } from '../../categories/services/categoryService';
