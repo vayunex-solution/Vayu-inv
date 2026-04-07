@@ -273,50 +273,7 @@ router.delete('/items/:id', itemController.deleteItem);
  */
 router.get('/categories', itemController.getCategories);
 
-/**
- * @swagger
- * /api/v1/inventory/hsn:
- *   get:
- *     summary: Get all HSN codes
- *     description: Retrieve all unique HSN codes used in Item Master with their tax rates
- *     tags: [HSN]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: HSN codes retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SuccessResponse'
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- */
-router.get('/hsn', itemController.getHsnList);
-
-/**
- * @swagger
- * /api/v1/inventory/hsn/{hsn_code}/items:
- *   get:
- *     summary: Get items by HSN code
- *     description: Retrieve all items that have a specific HSN code
- *     tags: [HSN]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: hsn_code
- *         required: true
- *         schema:
- *           type: string
- *         description: HSN Code
- *         example: "8471"
- *     responses:
- *       200:
- *         description: Items retrieved successfully
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- */
-router.get('/hsn/:hsn_code/items', itemController.getItemsByHsnCode);
+// HSN routes are now handled by hsn.controller.js (uses usp_gst_hsn_list procedure)
+// See: src/projects/inventory/controllers/hsn.controller.js
 
 module.exports = router;

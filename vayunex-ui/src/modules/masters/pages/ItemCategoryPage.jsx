@@ -1,7 +1,7 @@
 // src/modules/masters/pages/ItemCategoryPage.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Modal } from 'react-bootstrap';
-import { Plus, Search, Edit, Trash2, Check, X, FolderOpen, RefreshCw, ChevronRight } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Check, X, FolderOpen, RefreshCw } from 'lucide-react';
 import { apiClient } from '../../../lib';
 
 const BASE = '/api/v1/inventory/item-categories';
@@ -14,7 +14,7 @@ const ItemCategoryPage = () => {
   const [editForm, setEditForm] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ name: '', description: '', is_active: 1 });
+  const [addForm, setAddForm] = useState({ category_name: '', parent_id: 0, is_active: 'Y' });
   const [addSaving, setAddSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [alert, setAlert] = useState(null);
@@ -24,21 +24,26 @@ const ItemCategoryPage = () => {
     setTimeout(() => setAlert(null), 3500);
   };
 
+  // Normalize API keys — SP returns PascalCase: CategoryId, CategoryName, ParentId, IsActive
   const norm = (res) => {
     const raw = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
     return raw.map(c => ({
-      id: c.id ?? c.Id ?? c.CategoryId ?? c.ID,
-      name: c.name ?? c.Name ?? c.CategoryName ?? '',
-      description: c.description ?? c.Description ?? '',
-      is_active: c.is_active ?? c.IsActive ?? 1
+      id:            c.CategoryId   ?? c.categoryId   ?? c.id   ?? c.ID ?? 0,
+      category_name: c.CategoryName ?? c.categoryName ?? c.category_name ?? c.name ?? '',
+      parent_id:     c.ParentId     ?? c.parentId     ?? c.parent_id ?? 0,
+      is_active:     c.IsActive     ?? c.isActive     ?? c.is_active ?? 'Y'
     }));
   };
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get(BASE, { params: { search } });
-      const data = norm(res);
+      const res = await apiClient.get(BASE);
+      let data = norm(res);
+      if (search) {
+        const s = search.toLowerCase();
+        data = data.filter(c => c.category_name.toLowerCase().includes(s));
+      }
       setCategories(data);
     } catch (err) {
       showAlert(err?.message || 'Failed to load categories', 'danger');
@@ -52,24 +57,23 @@ const ItemCategoryPage = () => {
   // ─── Inline Edit ───────────────────────────────────────
   const handleDoubleClick = (cat) => {
     setEditingId(cat.id);
-    setEditForm({ 
-      name: cat.name, 
-      description: cat.description || '', 
-      is_active: cat.is_active === 'Y' || cat.is_active === 1 || cat.is_active === true ? 1 : 0 
+    setEditForm({
+      category_name: cat.category_name,
+      parent_id: cat.parent_id || 0,
+      is_active: cat.is_active
     });
   };
 
   const cancelEdit = () => { setEditingId(null); setEditForm({}); };
 
   const saveEdit = async (id) => {
-    if (!editForm.name?.trim()) return showAlert('Category name is required', 'danger');
+    if (!editForm.category_name?.trim()) return showAlert('Category name is required', 'danger');
     setSavingId(id);
     try {
-      setCategories(prev => prev.map(c => c.id === id ? { ...c, ...editForm } : c));
       await apiClient.put(`${BASE}/${id}`, editForm);
       showAlert('Category updated successfully');
-    } catch (err) {
       fetchCategories();
+    } catch (err) {
       showAlert(err?.message || 'Update failed', 'danger');
     } finally {
       setSavingId(null);
@@ -94,24 +98,30 @@ const ItemCategoryPage = () => {
 
   // ─── Add Modal ─────────────────────────────────────────
   const openAddModal = () => {
-    setAddForm({ name: '', description: '', is_active: 1 });
+    setAddForm({ category_name: '', parent_id: 0, is_active: 'Y' });
     setShowAddModal(true);
   };
 
   const handleAdd = async () => {
-    if (!addForm.name?.trim()) return showAlert('Category name is required', 'danger');
+    if (!addForm.category_name?.trim()) return showAlert('Category name is required', 'danger');
     setAddSaving(true);
     try {
-      const res = await apiClient.post(BASE, addForm);
-      const created = res.data || res;
-      setCategories(prev => [created, ...prev]);
+      await apiClient.post(BASE, addForm);
       setShowAddModal(false);
       showAlert('Category added successfully');
+      fetchCategories();
     } catch (err) {
       showAlert(err?.message || 'Failed to add category', 'danger');
     } finally {
       setAddSaving(false);
     }
+  };
+
+  // Get parent category name for display
+  const getParentName = (parentId) => {
+    if (!parentId || parentId === 0) return '— Root —';
+    const parent = categories.find(c => c.id === parentId);
+    return parent ? parent.category_name : `#${parentId}`;
   };
 
   return (
@@ -153,6 +163,7 @@ const ItemCategoryPage = () => {
               onChange={e => setSearch(e.target.value)}
               className="bg-transparent border-start-0 shadow-none"
             />
+            {search && <Button variant="light" onClick={() => setSearch('')}><X size={14} /></Button>}
           </InputGroup>
         </Card.Body>
       </Card>
@@ -175,8 +186,8 @@ const ItemCategoryPage = () => {
               <thead className="bg-light bg-opacity-50">
                 <tr>
                   <th className="border-0">#</th>
-                  <th className="border-0">Name</th>
-                  <th className="border-0">Description</th>
+                  <th className="border-0">Category Name</th>
+                  <th className="border-0">Parent Category</th>
                   <th className="border-0 text-center">Status</th>
                   <th className="border-0 text-end">Actions</th>
                 </tr>
@@ -194,36 +205,41 @@ const ItemCategoryPage = () => {
                       <td className="text-muted small">{idx + 1}</td>
                       <td>
                         {isEditing ? (
-                          <Form.Control size="sm" value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} autoFocus />
+                          <Form.Control size="sm" value={editForm.category_name} onChange={e => setEditForm(p => ({ ...p, category_name: e.target.value }))} autoFocus />
                         ) : (
                           <div className="d-flex align-items-center gap-2">
                             <div className="bg-primary bg-opacity-10 text-primary rounded p-1">
                               <FolderOpen size={16} />
                             </div>
-                            <span className="fw-semibold">{cat.name}</span>
+                            <span className="fw-semibold">{cat.category_name}</span>
                           </div>
                         )}
                       </td>
                       <td>
                         {isEditing ? (
-                          <Form.Control size="sm" value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} placeholder="Description (optional)" />
+                          <Form.Select size="sm" style={{ maxWidth: 200 }} value={editForm.parent_id} onChange={e => setEditForm(p => ({ ...p, parent_id: parseInt(e.target.value) || 0 }))}>
+                            <option value={0}>— Root (No Parent) —</option>
+                            {categories.filter(c => c.id !== cat.id).map(c => (
+                              <option key={c.id} value={c.id}>{c.category_name}</option>
+                            ))}
+                          </Form.Select>
                         ) : (
-                          <span className="text-muted small">{cat.description || '—'}</span>
+                          <span className="text-muted small">{getParentName(cat.parent_id)}</span>
                         )}
                       </td>
                       <td className="text-center">
                         {isEditing ? (
-                          <Form.Select size="sm" style={{ width: 110 }} value={editForm.is_active} onChange={e => setEditForm(p => ({ ...p, is_active: parseInt(e.target.value) }))}>
-                            <option value={1}>Active</option>
-                            <option value={0}>Inactive</option>
+                          <Form.Select size="sm" style={{ width: 110 }} value={editForm.is_active} onChange={e => setEditForm(p => ({ ...p, is_active: e.target.value }))}>
+                            <option value="Y">Active</option>
+                            <option value="N">Inactive</option>
                           </Form.Select>
                         ) : (
-                          <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{ 
-                            backgroundColor: cat.is_active ? '#dcfce7' : '#f3f4f6', 
-                            color: cat.is_active ? '#166534' : '#374151',
-                            fontSize: '0.75rem' 
+                          <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{
+                            backgroundColor: cat.is_active === 'Y' ? '#dcfce7' : '#f3f4f6',
+                            color: cat.is_active === 'Y' ? '#166534' : '#374151',
+                            fontSize: '0.75rem'
                           }}>
-                            {cat.is_active ? 'Active' : 'Inactive'}
+                            {cat.is_active === 'Y' ? 'Active' : 'Inactive'}
                           </Badge>
                         )}
                       </td>
@@ -257,17 +273,20 @@ const ItemCategoryPage = () => {
 
             {/* Mobile Cards */}
             <div className="d-block d-md-none">
-              {categories.map((cat, idx) => (
+              {categories.map((cat) => (
                 <div key={cat.id} className="p-3 border-bottom d-flex align-items-center gap-3">
                   <div className="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style={{ width: 40, height: 40, minWidth: 40 }}>
                     <FolderOpen size={18} />
                   </div>
                   <div className="flex-fill">
-                    <div className="fw-semibold">{cat.name}</div>
-                    <div className="small text-muted">{cat.description || '—'}</div>
+                    <div className="fw-semibold">{cat.category_name}</div>
+                    <div className="small text-muted">Parent: {getParentName(cat.parent_id)}</div>
                   </div>
-                  <Badge bg={cat.is_active ? 'success' : 'secondary'} className="bg-opacity-15 rounded-pill" style={{ color: cat.is_active ? '#198754' : '#6c757d' }}>
-                    {cat.is_active ? 'Active' : 'Inactive'}
+                  <Badge className="border-0 rounded-pill px-2 py-1" style={{
+                    backgroundColor: cat.is_active === 'Y' ? '#dcfce7' : '#f3f4f6',
+                    color: cat.is_active === 'Y' ? '#166534' : '#374151'
+                  }}>
+                    {cat.is_active === 'Y' ? 'Active' : 'Inactive'}
                   </Badge>
                   <div className="d-flex gap-1">
                     <Button variant="light" size="sm" className="rounded-circle btn-icon text-primary" onClick={() => handleDoubleClick(cat)}><Edit size={14} /></Button>
@@ -292,26 +311,25 @@ const ItemCategoryPage = () => {
             <Form.Label className="fw-semibold small">Category Name <span className="text-danger">*</span></Form.Label>
             <Form.Control
               placeholder="e.g. Electronics, Raw Materials..."
-              value={addForm.name}
-              onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))}
+              value={addForm.category_name}
+              onChange={e => setAddForm(p => ({ ...p, category_name: e.target.value }))}
               autoFocus
             />
           </Form.Group>
           <Form.Group className="mb-3">
-            <Form.Label className="fw-semibold small">Description</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              placeholder="Short description (optional)"
-              value={addForm.description}
-              onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))}
-            />
+            <Form.Label className="fw-semibold small">Parent Category</Form.Label>
+            <Form.Select value={addForm.parent_id} onChange={e => setAddForm(p => ({ ...p, parent_id: parseInt(e.target.value) || 0 }))}>
+              <option value={0}>— Root (No Parent) —</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.category_name}</option>
+              ))}
+            </Form.Select>
           </Form.Group>
           <Form.Group>
             <Form.Label className="fw-semibold small">Status</Form.Label>
-            <Form.Select value={addForm.is_active} onChange={e => setAddForm(p => ({ ...p, is_active: parseInt(e.target.value) }))}>
-              <option value={1}>Active</option>
-              <option value={0}>Inactive</option>
+            <Form.Select value={addForm.is_active} onChange={e => setAddForm(p => ({ ...p, is_active: e.target.value }))}>
+              <option value="Y">Active</option>
+              <option value="N">Inactive</option>
             </Form.Select>
           </Form.Group>
         </Modal.Body>

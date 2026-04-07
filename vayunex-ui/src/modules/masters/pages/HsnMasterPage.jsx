@@ -1,7 +1,7 @@
 // src/modules/masters/pages/HsnMasterPage.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Modal } from 'react-bootstrap';
-import { Plus, Search, Edit, Trash2, Check, X, Hash, RefreshCw, Percent } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Check, X, Hash, RefreshCw, Percent, Calendar } from 'lucide-react';
 import { apiClient } from '../../../lib';
 
 const BASE = '/api/v1/inventory/hsn';
@@ -16,7 +16,10 @@ const HsnMasterPage = () => {
   const [editForm, setEditForm] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ hsn_code: '', description: '', tax_rate: 18, is_active: 1 });
+  const [addForm, setAddForm] = useState({
+    hsn_code: '', hsn_desc: '', gst_rate: 18, cgst: 9, sgst: 9, igst: 18, cess: 0,
+    wef_date: '', wef_todate: '', is_active: 'Y'
+  });
   const [addSaving, setAddSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [alert, setAlert] = useState(null);
@@ -26,27 +29,36 @@ const HsnMasterPage = () => {
     setTimeout(() => setAlert(null), 3500);
   };
 
+  // Normalize API response keys (UPPERCASE from SP) to internal format
   const norm = (res) => {
     const raw = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
-    return raw.map(h => {
-      // Use hsn_code as ID if id is missing/undefined/0
-      const id = h.id ?? h.Id ?? h.HsnId ?? h.ID ?? h.hsn_code ?? h.HSNCode;
-      return {
-        id: id,
-        hsn_code: h.hsn_code ?? h.HSNCode ?? h.HsnCode ?? '',
-        description: h.description ?? h.Description ?? h.HSNDescription ?? '',
-        tax_rate: parseFloat(h.tax_rate ?? h.TaxRate ?? h.GST_Rate ?? 0),
-        is_active: h.is_active ?? h.IsActive ?? 1
-      };
-    });
+    return raw.map(h => ({
+      id:        h.GSTHSNID   ?? h.GstHsnId   ?? h.id   ?? 0,
+      hsn_code:  h.HSN_CODE   ?? h.HsnCode    ?? h.hsn_code  ?? '',
+      hsn_desc:  h.HSN_DESC   ?? h.HsnDesc    ?? h.hsn_desc  ?? '',
+      gst_rate:  parseFloat(h.GSTRATE ?? h.GstRate ?? h.gst_rate ?? 0),
+      cgst:      parseFloat(h.CGST    ?? h.cgst   ?? 0),
+      sgst:      parseFloat(h.SGST    ?? h.sgst   ?? 0),
+      igst:      parseFloat(h.IGST    ?? h.igst   ?? 0),
+      cess:      parseFloat(h.CESS    ?? h.cess   ?? 0),
+      wef_date:  h.WEFDATE    ?? h.WefDate    ?? h.wef_date   ?? null,
+      wef_todate:h.WEFTODATE  ?? h.WefToDate  ?? h.wef_todate ?? null,
+      is_active: h.ISACTIVE   ?? h.IsActive   ?? h.is_active  ?? 'Y'
+    }));
   };
-
 
   const fetchHsn = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get(BASE, { params: { search } });
-      const data = norm(res);
+      const res = await apiClient.get(BASE);
+      let data = norm(res);
+      if (search) {
+        const s = search.toLowerCase();
+        data = data.filter(h =>
+          h.hsn_code.toLowerCase().includes(s) ||
+          h.hsn_desc.toLowerCase().includes(s)
+        );
+      }
       setHsnList(data);
     } catch (err) {
       showAlert(err?.message || 'Failed to load HSN codes', 'danger');
@@ -57,14 +69,26 @@ const HsnMasterPage = () => {
 
   useEffect(() => { fetchHsn(); }, [fetchHsn]);
 
+  // Auto-split GST rate into CGST/SGST/IGST
+  const autoSplitGst = (form, gstRate) => {
+    const rate = parseFloat(gstRate) || 0;
+    return { ...form, gst_rate: rate, cgst: rate / 2, sgst: rate / 2, igst: rate };
+  };
+
   // ─── Inline Edit ───────────────────────────────────────
   const handleDoubleClick = (hsn) => {
     setEditingId(hsn.id);
     setEditForm({
       hsn_code: hsn.hsn_code,
-      description: hsn.description || '',
-      tax_rate: hsn.tax_rate,
-      is_active: hsn.is_active === 'Y' || hsn.is_active === 1 || hsn.is_active === true ? 1 : 0
+      hsn_desc: hsn.hsn_desc || '',
+      gst_rate: hsn.gst_rate,
+      cgst: hsn.cgst,
+      sgst: hsn.sgst,
+      igst: hsn.igst,
+      cess: hsn.cess,
+      wef_date: hsn.wef_date ? hsn.wef_date.substring(0, 10) : '',
+      wef_todate: hsn.wef_todate ? hsn.wef_todate.substring(0, 10) : '',
+      is_active: hsn.is_active
     });
   };
 
@@ -74,11 +98,10 @@ const HsnMasterPage = () => {
     if (!editForm.hsn_code?.trim()) return showAlert('HSN code is required', 'danger');
     setSavingId(id);
     try {
-      setHsnList(prev => prev.map(h => h.id === id ? { ...h, ...editForm } : h));
       await apiClient.put(`${BASE}/${id}`, editForm);
       showAlert('HSN updated successfully');
-    } catch (err) {
       fetchHsn();
+    } catch (err) {
       showAlert(err?.message || 'Update failed', 'danger');
     } finally {
       setSavingId(null);
@@ -103,7 +126,10 @@ const HsnMasterPage = () => {
 
   // ─── Add Modal ─────────────────────────────────────────
   const openAddModal = () => {
-    setAddForm({ hsn_code: '', description: '', tax_rate: 18, is_active: 1 });
+    setAddForm({
+      hsn_code: '', hsn_desc: '', gst_rate: 18, cgst: 9, sgst: 9, igst: 18, cess: 0,
+      wef_date: new Date().toISOString().substring(0, 10), wef_todate: '', is_active: 'Y'
+    });
     setShowAddModal(true);
   };
 
@@ -111,11 +137,10 @@ const HsnMasterPage = () => {
     if (!addForm.hsn_code?.trim()) return showAlert('HSN code is required', 'danger');
     setAddSaving(true);
     try {
-      const res = await apiClient.post(BASE, addForm);
-      const created = res.data || res;
-      setHsnList(prev => [created, ...prev]);
+      await apiClient.post(BASE, addForm);
       setShowAddModal(false);
       showAlert('HSN code added successfully');
+      fetchHsn();
     } catch (err) {
       showAlert(err?.message || 'Failed to add HSN', 'danger');
     } finally {
@@ -124,13 +149,18 @@ const HsnMasterPage = () => {
   };
 
   const getTaxBadgeColor = (rate) => {
-    if (rate === 0) return { bg: '#f3f4f6', text: '#374151' }; // Grey
-    if (rate <= 5) return { bg: '#dcfce7', text: '#166534' }; // Green
-    if (rate <= 12) return { bg: '#dbeafe', text: '#1e40af' }; // Blue
-    if (rate <= 18) return { bg: '#fef3c7', text: '#92400e' }; // Amber
-    return { bg: '#fee2e2', text: '#991b1b' }; // Red
+    if (rate === 0) return { bg: '#f3f4f6', text: '#374151' };
+    if (rate <= 5) return { bg: '#dcfce7', text: '#166534' };
+    if (rate <= 12) return { bg: '#dbeafe', text: '#1e40af' };
+    if (rate <= 18) return { bg: '#fef3c7', text: '#92400e' };
+    return { bg: '#fee2e2', text: '#991b1b' };
   };
 
+  const formatDate = (d) => {
+    if (!d) return '—';
+    try { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+    catch { return d; }
+  };
 
   return (
     <div className="container-fluid p-0">
@@ -171,6 +201,7 @@ const HsnMasterPage = () => {
               onChange={e => setSearch(e.target.value)}
               className="bg-transparent border-start-0 shadow-none"
             />
+            {search && <Button variant="light" onClick={() => setSearch('')}><X size={14} /></Button>}
           </InputGroup>
         </Card.Body>
       </Card>
@@ -195,7 +226,11 @@ const HsnMasterPage = () => {
                   <th className="border-0">#</th>
                   <th className="border-0">HSN Code</th>
                   <th className="border-0">Description</th>
-                  <th className="border-0 text-center">Tax Rate</th>
+                  <th className="border-0 text-center">GST Rate</th>
+                  <th className="border-0 text-center">CGST</th>
+                  <th className="border-0 text-center">SGST</th>
+                  <th className="border-0 text-center">IGST</th>
+                  <th className="border-0 text-center">WEF Date</th>
                   <th className="border-0 text-center">Status</th>
                   <th className="border-0 text-end">Actions</th>
                 </tr>
@@ -203,7 +238,7 @@ const HsnMasterPage = () => {
               <tbody>
                 {hsnList.map((hsn, idx) => {
                   const isEditing = editingId === hsn.id;
-                  const taxColors = getTaxBadgeColor(hsn.tax_rate);
+                  const taxColors = getTaxBadgeColor(hsn.gst_rate);
                   return (
                     <tr
                       key={hsn.id}
@@ -226,35 +261,45 @@ const HsnMasterPage = () => {
                       </td>
                       <td>
                         {isEditing ? (
-                          <Form.Control size="sm" value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} placeholder="Description" />
+                          <Form.Control size="sm" value={editForm.hsn_desc} onChange={e => setEditForm(p => ({ ...p, hsn_desc: e.target.value }))} placeholder="Description" />
                         ) : (
-                          <span className="text-muted small">{hsn.description || '—'}</span>
+                          <span className="text-muted small">{hsn.hsn_desc || '—'}</span>
                         )}
                       </td>
-                      <td className="text-center" style={{ width: 130 }}>
+                      <td className="text-center" style={{ width: 100 }}>
                         {isEditing ? (
-                          <Form.Select size="sm" value={editForm.tax_rate} onChange={e => setEditForm(p => ({ ...p, tax_rate: parseFloat(e.target.value) }))}>
+                          <Form.Select size="sm" value={editForm.gst_rate} onChange={e => setEditForm(p => autoSplitGst(p, e.target.value))}>
                             {TAX_SLABS.map(t => <option key={t} value={t}>{t}%</option>)}
                           </Form.Select>
                         ) : (
                           <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{ backgroundColor: taxColors.bg, color: taxColors.text, fontSize: '0.75rem' }}>
-                            <Percent size={10} className="me-1" />{hsn.tax_rate ?? 0}%
+                            <Percent size={10} className="me-1" />{hsn.gst_rate}%
                           </Badge>
                         )}
                       </td>
-                      <td className="text-center" style={{ width: 110 }}>
+                      <td className="text-center small text-muted">{hsn.cgst}%</td>
+                      <td className="text-center small text-muted">{hsn.sgst}%</td>
+                      <td className="text-center small text-muted">{hsn.igst}%</td>
+                      <td className="text-center small text-muted">
                         {isEditing ? (
-                          <Form.Select size="sm" value={editForm.is_active} onChange={e => setEditForm(p => ({ ...p, is_active: parseInt(e.target.value) }))}>
-                            <option value={1}>Active</option>
-                            <option value={0}>Inactive</option>
+                          <Form.Control size="sm" type="date" value={editForm.wef_date} onChange={e => setEditForm(p => ({ ...p, wef_date: e.target.value }))} />
+                        ) : (
+                          formatDate(hsn.wef_date)
+                        )}
+                      </td>
+                      <td className="text-center" style={{ width: 100 }}>
+                        {isEditing ? (
+                          <Form.Select size="sm" value={editForm.is_active} onChange={e => setEditForm(p => ({ ...p, is_active: e.target.value }))}>
+                            <option value="Y">Active</option>
+                            <option value="N">Inactive</option>
                           </Form.Select>
                         ) : (
-                          <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{ 
-                            backgroundColor: hsn.is_active ? '#dcfce7' : '#f3f4f6', 
-                            color: hsn.is_active ? '#166534' : '#374151',
-                            fontSize: '0.75rem' 
+                          <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{
+                            backgroundColor: hsn.is_active === 'Y' ? '#dcfce7' : '#f3f4f6',
+                            color: hsn.is_active === 'Y' ? '#166534' : '#374151',
+                            fontSize: '0.75rem'
                           }}>
-                            {hsn.is_active ? 'Active' : 'Inactive'}
+                            {hsn.is_active === 'Y' ? 'Active' : 'Inactive'}
                           </Badge>
                         )}
                       </td>
@@ -289,22 +334,35 @@ const HsnMasterPage = () => {
             {/* Mobile Cards */}
             <div className="d-block d-md-none">
               {hsnList.map(hsn => {
-                const taxColors = getTaxBadgeColor(hsn.tax_rate);
+                const taxColors = getTaxBadgeColor(hsn.gst_rate);
                 return (
-                  <div key={hsn.id} className="p-3 border-bottom d-flex align-items-center gap-3">
-                    <div className="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, minWidth: 42 }}>
-                      <Hash size={18} />
+                  <div key={hsn.id} className="p-3 border-bottom">
+                    <div className="d-flex align-items-center gap-3 mb-2">
+                      <div className="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center" style={{ width: 42, height: 42, minWidth: 42 }}>
+                        <Hash size={18} />
+                      </div>
+                      <div className="flex-fill">
+                        <div className="fw-bold font-monospace">{hsn.hsn_code}</div>
+                        <div className="small text-muted">{hsn.hsn_desc || '—'}</div>
+                      </div>
+                      <Badge className="border-0 rounded-pill px-2 py-1" style={{ backgroundColor: taxColors.bg, color: taxColors.text }}>
+                        {hsn.gst_rate}%
+                      </Badge>
                     </div>
-                    <div className="flex-fill">
-                      <div className="fw-bold font-monospace">{hsn.hsn_code}</div>
-                      <div className="small text-muted">{hsn.description || '—'}</div>
+                    <div className="d-flex gap-3 mb-2 small text-muted">
+                      <span>CGST: {hsn.cgst}%</span>
+                      <span>SGST: {hsn.sgst}%</span>
+                      <span>IGST: {hsn.igst}%</span>
+                      {hsn.cess > 0 && <span>Cess: {hsn.cess}%</span>}
                     </div>
-                    <Badge bg={taxColors.bg} className="bg-opacity-15 rounded-pill" style={{ color: taxColors.text }}>
-                      {hsn.tax_rate ?? 0}%
-                    </Badge>
-                    <div className="d-flex gap-1">
-                      <Button variant="light" size="sm" className="rounded-circle btn-icon text-primary" onClick={() => handleDoubleClick(hsn)}><Edit size={14} /></Button>
-                      <Button variant="light" size="sm" className="rounded-circle btn-icon text-danger" onClick={() => handleDelete(hsn.id)}><Trash2 size={14} /></Button>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div className="small text-muted">
+                        <Calendar size={12} className="me-1" />WEF: {formatDate(hsn.wef_date)}
+                      </div>
+                      <div className="d-flex gap-1">
+                        <Button variant="light" size="sm" className="rounded-circle btn-icon text-primary" onClick={() => handleDoubleClick(hsn)}><Edit size={14} /></Button>
+                        <Button variant="light" size="sm" className="rounded-circle btn-icon text-danger" onClick={() => handleDelete(hsn.id)}><Trash2 size={14} /></Button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -315,7 +373,7 @@ const HsnMasterPage = () => {
       </Card>
 
       {/* Add HSN Modal */}
-      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered>
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered size="lg">
         <Modal.Header closeButton className="border-0 pb-0">
           <Modal.Title className="fw-bold fs-5 d-flex align-items-center gap-2">
             <Hash size={20} className="text-warning" /> Add New HSN Code
@@ -323,7 +381,7 @@ const HsnMasterPage = () => {
         </Modal.Header>
         <Modal.Body className="pt-3">
           <Row className="g-3">
-            <Col xs={12} sm={6}>
+            <Col xs={12} sm={4}>
               <Form.Group>
                 <Form.Label className="fw-semibold small">HSN Code <span className="text-danger">*</span></Form.Label>
                 <Form.Control
@@ -335,11 +393,20 @@ const HsnMasterPage = () => {
                 <Form.Text className="text-muted">4–8 digit code as per GST</Form.Text>
               </Form.Group>
             </Col>
-            <Col xs={12} sm={6}>
+            <Col xs={12} sm={4}>
               <Form.Group>
-                <Form.Label className="fw-semibold small">Tax Rate (GST%)</Form.Label>
-                <Form.Select value={addForm.tax_rate} onChange={e => setAddForm(p => ({ ...p, tax_rate: parseFloat(e.target.value) }))}>
+                <Form.Label className="fw-semibold small">GST Rate (%)</Form.Label>
+                <Form.Select value={addForm.gst_rate} onChange={e => setAddForm(p => autoSplitGst(p, e.target.value))}>
                   {TAX_SLABS.map(t => <option key={t} value={t}>{t}%</option>)}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+            <Col xs={12} sm={4}>
+              <Form.Group>
+                <Form.Label className="fw-semibold small">Status</Form.Label>
+                <Form.Select value={addForm.is_active} onChange={e => setAddForm(p => ({ ...p, is_active: e.target.value }))}>
+                  <option value="Y">Active</option>
+                  <option value="N">Inactive</option>
                 </Form.Select>
               </Form.Group>
             </Col>
@@ -349,19 +416,46 @@ const HsnMasterPage = () => {
                 <Form.Control
                   as="textarea"
                   rows={2}
-                  placeholder="e.g. Computers, printers and other office machines..."
-                  value={addForm.description}
-                  onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="e.g. Wheat, Computers, printers and other office machines..."
+                  value={addForm.hsn_desc}
+                  onChange={e => setAddForm(p => ({ ...p, hsn_desc: e.target.value }))}
                 />
+              </Form.Group>
+            </Col>
+            <Col xs={6} sm={3}>
+              <Form.Group>
+                <Form.Label className="fw-semibold small">CGST (%)</Form.Label>
+                <Form.Control type="number" step="0.01" value={addForm.cgst} onChange={e => setAddForm(p => ({ ...p, cgst: parseFloat(e.target.value) || 0 }))} />
+              </Form.Group>
+            </Col>
+            <Col xs={6} sm={3}>
+              <Form.Group>
+                <Form.Label className="fw-semibold small">SGST (%)</Form.Label>
+                <Form.Control type="number" step="0.01" value={addForm.sgst} onChange={e => setAddForm(p => ({ ...p, sgst: parseFloat(e.target.value) || 0 }))} />
+              </Form.Group>
+            </Col>
+            <Col xs={6} sm={3}>
+              <Form.Group>
+                <Form.Label className="fw-semibold small">IGST (%)</Form.Label>
+                <Form.Control type="number" step="0.01" value={addForm.igst} onChange={e => setAddForm(p => ({ ...p, igst: parseFloat(e.target.value) || 0 }))} />
+              </Form.Group>
+            </Col>
+            <Col xs={6} sm={3}>
+              <Form.Group>
+                <Form.Label className="fw-semibold small">Cess (%)</Form.Label>
+                <Form.Control type="number" step="0.01" value={addForm.cess} onChange={e => setAddForm(p => ({ ...p, cess: parseFloat(e.target.value) || 0 }))} />
               </Form.Group>
             </Col>
             <Col xs={12} sm={6}>
               <Form.Group>
-                <Form.Label className="fw-semibold small">Status</Form.Label>
-                <Form.Select value={addForm.is_active} onChange={e => setAddForm(p => ({ ...p, is_active: parseInt(e.target.value) }))}>
-                  <option value={1}>Active</option>
-                  <option value={0}>Inactive</option>
-                </Form.Select>
+                <Form.Label className="fw-semibold small">WEF Date (From)</Form.Label>
+                <Form.Control type="date" value={addForm.wef_date} onChange={e => setAddForm(p => ({ ...p, wef_date: e.target.value }))} />
+              </Form.Group>
+            </Col>
+            <Col xs={12} sm={6}>
+              <Form.Group>
+                <Form.Label className="fw-semibold small">WEF To Date (Optional)</Form.Label>
+                <Form.Control type="date" value={addForm.wef_todate} onChange={e => setAddForm(p => ({ ...p, wef_todate: e.target.value }))} />
               </Form.Group>
             </Col>
           </Row>
