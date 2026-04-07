@@ -119,6 +119,26 @@ const registerRoutes = () => {
     const itemRoutes = require('./projects/inventory/routes/item.routes');
     app.use('/api/v1/inventory', itemRoutes);
 
+    // HSN routes - full CRUD for HSN Code Master
+    const hsnRoutes = require('./projects/inventory/routes/hsn.routes');
+    app.use('/api/v1/inventory/hsn', hsnRoutes);
+
+    // Item Categories route (separate endpoint)
+    const itemCategoriesRoutes = require('./projects/inventory/routes/item.routes');
+    app.use('/api/v1/inventory/item-categories', (() => {
+        const catRouter = require('express').Router();
+        const { authenticate } = require('./core/auth');
+        const { asyncHandler } = require('./core/exceptions');
+        const { successResponse } = require('./core/utils');
+        const itemService = require('./projects/inventory/services/item.service');
+        catRouter.use(authenticate);
+        catRouter.get('/', asyncHandler(async (req, res) => {
+            const cats = await itemService.getCategories();
+            return successResponse(res, cats, 'Item categories retrieved successfully');
+        }));
+        return catRouter;
+    })());
+
     const countryRoutes = require('./projects/inventory/controllers/country.controller');
     app.use('/api/v1/inventory/countries', countryRoutes);
 

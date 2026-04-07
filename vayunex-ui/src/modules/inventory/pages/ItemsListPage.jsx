@@ -1,35 +1,20 @@
 // src/modules/inventory/pages/ItemsListPage.jsx
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Pagination, Modal } from 'react-bootstrap';
-import { Plus, Search, Edit, Trash2, Eye, Package, Check, X } from 'lucide-react';
-import { getItems, updateItem, createItem } from '../services/inventoryService';
-import { getCategories } from '../../categories/services/categoryService';
-import { getHsnList } from '../services/hsnService';
+import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { Plus, Search, Edit, Eye, Package, Check, X } from 'lucide-react';
+import { getItems, updateItem, getItemCategories } from '../services/inventoryService';
+import { getHsnDropdown } from '../services/hsnService';
 import { useTabStore, useFyStore } from '../../../lib';
 
 const ItemsListPage = () => {
   const [items, setItems] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, limit: 10, totalPages: 1 });
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [categories, setCategories] = useState([]);
   const [hsnCodes, setHsnCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [hsnFilter, setHsnFilter] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addSaving, setAddSaving] = useState(false);
-  const [addForm, setAddForm] = useState({
-    item_name: '',
-    item_code: '',
-    unit_price: '',
-    quantity: '',
-    unit: 'PCS',
-    category_id: '',
-    hsn_code: '',
-    tax_rate: '',
-    barcode: '',
-    status: 'active'
-  });
   
   // Double tap to edit state
   const [editingItemId, setEditingItemId] = useState(null);
@@ -46,15 +31,16 @@ const ItemsListPage = () => {
         search, 
         category_id: categoryFilter ? parseInt(categoryFilter) : null,
         hsn_code: hsnFilter || null,
-        fy_id: selectedFyId || null,
+        // fy_id auto-injected by apiClient interceptor
         page,
         limit: pagination.limit
       });
       if (itemsRes.success) {
-        // Handle both paginated object and direct array
-        const fetchedItems = itemsRes.data?.items || itemsRes.data || [];
+        // Service returns { items: [...], pagination: {...} }
+        const fetchedItems = itemsRes.data?.items || [];
+        const pag = itemsRes.data?.pagination;
         setItems(fetchedItems);
-        if (itemsRes.data?.pagination) setPagination(itemsRes.data.pagination);
+        if (pag) setPagination(prev => ({ ...prev, ...pag }));
       }
     } finally {
       setLoading(false);
@@ -63,15 +49,15 @@ const ItemsListPage = () => {
 
   useEffect(() => {
     fetchItems(1);
-    
-    // Fetch categories only once
+
+    // Fetch categories from item-categories endpoint
     const fetchCats = async () => {
-      const catRes = await getCategories();
+      const catRes = await getItemCategories();
       if (catRes.success) setCategories(catRes.data);
     };
-    // Fetch HSN list once
+    // Fetch HSN dropdown
     const fetchHsn = async () => {
-      const hsnRes = await getHsnList();
+      const hsnRes = await getHsnDropdown();
       if (hsnRes.success) setHsnCodes(hsnRes.data);
     };
     fetchCats();
@@ -108,41 +94,6 @@ const ItemsListPage = () => {
     setEditForm({});
   };
 
-  const handleAddChange = (field, value) => {
-    setAddForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleAddSubmit = async () => {
-    if (!addForm.item_name.trim() || !addForm.item_code.trim() || !addForm.unit_price || !addForm.quantity) {
-      alert('Item name, code, price, and quantity are required');
-      return;
-    }
-    setAddSaving(true);
-    try {
-      const res = await createItem(addForm);
-      if (res.success) {
-        setShowAddModal(false);
-        setAddForm({
-          item_name: '',
-          item_code: '',
-          unit_price: '',
-          quantity: '',
-          unit: 'PCS',
-          category_id: '',
-          hsn_code: '',
-          tax_rate: '',
-          barcode: '',
-          status: 'active'
-        });
-        fetchItems(pagination.page || 1);
-      } else {
-        alert(res.error?.message || 'Failed to add item');
-      }
-    } finally {
-      setAddSaving(false);
-    }
-  };
-
   const saveEdit = async (id) => {
     setSavingId(id);
     try {
@@ -153,7 +104,6 @@ const ItemsListPage = () => {
       
       const res = await updateItem(id, editForm);
       if (!res.success) {
-        // Revert on failure
         fetchItems(pagination.page);
         alert('Failed to save changes');
       }
@@ -169,10 +119,9 @@ const ItemsListPage = () => {
       <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
         <div>
           <h4 className="fw-bold mb-1 gradient-text">Inventory Items</h4>
-          <p className="text-muted small mb-0">{items.length} items found</p>
+          <p className="text-muted small mb-0">{pagination.total ?? items.length} items found</p>
         </div>
-        <Button variant="primary" className="btn-glossy d-flex align-items-center gap-2 rounded-pill shadow-sm"
-          onClick={() => setShowAddModal(true)}>
+        <Button variant="primary" className="btn-glossy d-flex align-items-center gap-2 rounded-pill shadow-sm">
           <Plus size={18} /> Add New Item
         </Button>
       </div>
@@ -194,7 +143,7 @@ const ItemsListPage = () => {
                 />
               </InputGroup>
             </Col>
-            <Col xs={12} md={2}>
+            <Col xs={6} md={2}>
               <Form.Select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
@@ -206,7 +155,7 @@ const ItemsListPage = () => {
                 ))}
               </Form.Select>
             </Col>
-            <Col xs={12} md={2}>
+            <Col xs={6} md={2}>
               <Form.Select
                 value={hsnFilter}
                 onChange={(e) => setHsnFilter(e.target.value)}
@@ -214,9 +163,10 @@ const ItemsListPage = () => {
               >
                 <option value="">All HSN</option>
                 {hsnCodes.map(h => {
-                  const code = h.HSNCode || h.hsn_code || h.code;
-                  const name = h.HSNDescription || h.description || h.name;
-                  return <option key={code} value={code}>{code} {name ? `- ${name}` : ''}</option>;
+                  // Support multiple response shapes from API
+                  const code = h.hsn_code || h.HSNCode || h.code || h.value;
+                  const name = h.description || h.HSNDescription || h.name || h.label;
+                  return <option key={code} value={code}>{code}{name ? ` - ${name}` : ''}</option>;
                 })}
               </Form.Select>
             </Col>
@@ -242,6 +192,7 @@ const ItemsListPage = () => {
                   <th className="border-0 text-end">Price (₹)</th>
                   <th className="border-0 text-center">Stock</th>
                   <th className="border-0 text-center">HSN</th>
+                  <th className="border-0 text-center">Tax%</th>
                   <th className="border-0 text-center">Status</th>
                   <th className="border-0 text-end">Actions</th>
                 </tr>
@@ -286,7 +237,7 @@ const ItemsListPage = () => {
                           <span className="fw-medium">₹{parseFloat(item.unit_price).toLocaleString('en-IN')}</span>
                         )}
                       </td>
-                      <td className="text-center" style={{ width: '120px' }}>
+                      <td className="text-center" style={{ width: '110px' }}>
                          {isEditing ? (
                            <Form.Control 
                              type="number" 
@@ -302,12 +253,15 @@ const ItemsListPage = () => {
                           </div>
                         )}
                       </td>
-                      <td className="text-center" style={{ width: '120px' }}>
+                      <td className="text-center" style={{ width: '100px' }}>
                         <Badge bg="secondary" className="bg-opacity-10 text-secondary fw-medium px-2 py-2 rounded-pill">
                           {item.hsn_code || '-'}
                         </Badge>
                       </td>
-                      <td className="text-center" style={{ width: '120px' }}>
+                      <td className="text-center" style={{ width: '80px' }}>
+                        <small className="text-muted">{item.tax_rate != null ? `${item.tax_rate}%` : '-'}</small>
+                      </td>
+                      <td className="text-center" style={{ width: '110px' }}>
                          {isEditing ? (
                            <Form.Select 
                              size="sm" 
@@ -316,6 +270,7 @@ const ItemsListPage = () => {
                            >
                              <option value="active">Active</option>
                              <option value="inactive">Inactive</option>
+                             <option value="discontinued">Discontinued</option>
                            </Form.Select>
                          ) : (
                            <Badge 
@@ -388,6 +343,7 @@ const ItemsListPage = () => {
                               <Form.Select size="sm" value={editForm.status || 'active'} onChange={(e) => handleEditChange('status', e.target.value)}>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
+                                <option value="discontinued">Discontinued</option>
                               </Form.Select>
                             </Col>
                           </Row>
@@ -402,20 +358,16 @@ const ItemsListPage = () => {
                            <div className="text-muted small">Price</div>
                            <div className="fw-bold">₹{parseFloat(item.unit_price).toLocaleString('en-IN')}</div>
                          </div>
+                         <div className="text-center">
+                           <div className="text-muted small">HSN</div>
+                           <div className="fw-semibold text-secondary">{item.hsn_code || '-'}</div>
+                         </div>
                          <div className="text-end">
                            <div className="text-muted small">Stock</div>
                            <div className="fw-bold">{item.quantity} <span className="fw-normal text-muted small">{item.unit || 'PCS'}</span></div>
                          </div>
                        </div>
                      )}
-                     
-                    {!isEditing && (
-                      <div className="mt-2 text-muted small">
-                        HSN: <span className="fw-semibold text-secondary">
-{item.hsn_code || '-'}
-</span>
-                      </div>
-                    )}
 
                      {!isEditing && (
                        <div className="d-flex justify-content-end gap-2 mt-3 pt-2 border-top">
@@ -435,86 +387,11 @@ const ItemsListPage = () => {
         )}
       </Card>
       
-      {/* Pagination component to be implemented if required */}
       <div className="d-flex justify-content-center mt-4">
           <small className="text-muted text-center d-block">✨ Tip: Double tap any item row to quick edit</small>
       </div>
-
-      {/* Add Item Modal */}
-      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered>
-        <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold">Add New Item</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Label className="fw-medium">Item Name *</Form.Label>
-                <Form.Control value={addForm.item_name} onChange={e => handleAddChange('item_name', e.target.value)} />
-              </Col>
-              <Col md={6}>
-                <Form.Label className="fw-medium">Item Code *</Form.Label>
-                <Form.Control value={addForm.item_code} onChange={e => handleAddChange('item_code', e.target.value)} />
-              </Col>
-              <Col md={4}>
-                <Form.Label className="fw-medium">Price *</Form.Label>
-                <Form.Control type="number" value={addForm.unit_price} onChange={e => handleAddChange('unit_price', e.target.value)} />
-              </Col>
-              <Col md={4}>
-                <Form.Label className="fw-medium">Quantity *</Form.Label>
-                <Form.Control type="number" value={addForm.quantity} onChange={e => handleAddChange('quantity', e.target.value)} />
-              </Col>
-              <Col md={4}>
-                <Form.Label className="fw-medium">Unit</Form.Label>
-                <Form.Control value={addForm.unit} onChange={e => handleAddChange('unit', e.target.value)} />
-              </Col>
-              <Col md={6}>
-                <Form.Label className="fw-medium">Category</Form.Label>
-                <Form.Select value={addForm.category_id} onChange={e => handleAddChange('category_id', e.target.value)}>
-                  <option value="">Select category</option>
-                  {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                </Form.Select>
-              </Col>
-              <Col md={6}>
-                <Form.Label className="fw-medium">HSN Code</Form.Label>
-                <Form.Select value={addForm.hsn_code} onChange={e => handleAddChange('hsn_code', e.target.value)}>
-                  <option value="">Select HSN</option>
-                  {hsnCodes.map(h => {
-                    const code = h.HSNCode || h.hsn_code || h.code;
-                    const name = h.HSNDescription || h.description || h.name;
-                    return <option key={code} value={code}>{code} {name ? `- ${name}` : ''}</option>;
-                  })}
-                </Form.Select>
-              </Col>
-              <Col md={6}>
-                <Form.Label className="fw-medium">Tax Rate (%)</Form.Label>
-                <Form.Control type="number" value={addForm.tax_rate} onChange={e => handleAddChange('tax_rate', e.target.value)} />
-              </Col>
-              <Col md={6}>
-                <Form.Label className="fw-medium">Barcode</Form.Label>
-                <Form.Control value={addForm.barcode} onChange={e => handleAddChange('barcode', e.target.value)} />
-              </Col>
-              <Col md={6}>
-                <Form.Label className="fw-medium">Status</Form.Label>
-                <Form.Select value={addForm.status} onChange={e => handleAddChange('status', e.target.value)}>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </Form.Select>
-              </Col>
-            </Row>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer className="border-0 pt-0">
-          <Button variant="light" className="rounded-pill px-4" onClick={() => setShowAddModal(false)}>Cancel</Button>
-          <Button variant="primary" className="rounded-pill px-4 text-white" onClick={handleAddSubmit} disabled={addSaving}>
-            {addSaving ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : 'Add Item'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </div>
   );
 };
 
 export default ItemsListPage;
-
-
