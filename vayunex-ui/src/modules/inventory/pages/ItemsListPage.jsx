@@ -4,15 +4,18 @@ import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Pagina
 import { Plus, Search, Edit, Trash2, Eye, Package, Check, X } from 'lucide-react';
 import { getItems, updateItem } from '../services/inventoryService';
 import { getCategories } from '../../categories/services/categoryService';
+import { getHsnList } from '../services/hsnService';
 import { useTabStore, useFyStore } from '../../../lib';
 
 const ItemsListPage = () => {
   const [items, setItems] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, totalPages: 1 });
   const [categories, setCategories] = useState([]);
+  const [hsnCodes, setHsnCodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [hsnFilter, setHsnFilter] = useState('');
   
   // Double tap to edit state
   const [editingItemId, setEditingItemId] = useState(null);
@@ -28,6 +31,7 @@ const ItemsListPage = () => {
       const itemsRes = await getItems({ 
         search, 
         category_id: categoryFilter ? parseInt(categoryFilter) : null,
+        hsn_code: hsnFilter || null,
         fy_id: selectedFyId || null,
         page,
         limit: pagination.limit
@@ -51,8 +55,14 @@ const ItemsListPage = () => {
       const catRes = await getCategories();
       if (catRes.success) setCategories(catRes.data);
     };
+    // Fetch HSN list once
+    const fetchHsn = async () => {
+      const hsnRes = await getHsnList();
+      if (hsnRes.success) setHsnCodes(hsnRes.data);
+    };
     fetchCats();
-  }, [search, categoryFilter, selectedFyId]);
+    fetchHsn();
+  }, [search, categoryFilter, hsnFilter, selectedFyId]);
 
   const handleViewItem = (item) => {
     openTab({
@@ -134,7 +144,7 @@ const ItemsListPage = () => {
                 />
               </InputGroup>
             </Col>
-            <Col xs={12} md={4}>
+            <Col xs={12} md={2}>
               <Form.Select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
@@ -144,6 +154,20 @@ const ItemsListPage = () => {
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
+              </Form.Select>
+            </Col>
+            <Col xs={12} md={2}>
+              <Form.Select
+                value={hsnFilter}
+                onChange={(e) => setHsnFilter(e.target.value)}
+                className="glass-input border-light bg-transparent text-dark shadow-none"
+              >
+                <option value="">All HSN</option>
+                {hsnCodes.map(h => {
+                  const code = h.HSNCode || h.hsn_code || h.code;
+                  const name = h.HSNDescription || h.description || h.name;
+                  return <option key={code} value={code}>{code} {name ? `- ${name}` : ''}</option>;
+                })}
               </Form.Select>
             </Col>
           </Row>
@@ -167,6 +191,7 @@ const ItemsListPage = () => {
                   <th className="border-0">Code / Name</th>
                   <th className="border-0 text-end">Price (₹)</th>
                   <th className="border-0 text-center">Stock</th>
+                  <th className="border-0 text-center">HSN</th>
                   <th className="border-0 text-center">Status</th>
                   <th className="border-0 text-end">Actions</th>
                 </tr>
@@ -212,9 +237,9 @@ const ItemsListPage = () => {
                         )}
                       </td>
                       <td className="text-center" style={{ width: '120px' }}>
-                        {isEditing ? (
-                          <Form.Control 
-                            type="number" 
+                         {isEditing ? (
+                           <Form.Control 
+                             type="number" 
                             size="sm"
                             value={editForm.quantity} 
                             onChange={(e) => handleEditChange('quantity', e.target.value)}
@@ -226,6 +251,11 @@ const ItemsListPage = () => {
                             <small className="text-muted">{item.unit || 'PCS'}</small>
                           </div>
                         )}
+                      </td>
+                      <td className="text-center" style={{ width: '120px' }}>
+                        <Badge bg="secondary" className="bg-opacity-10 text-secondary fw-medium px-2 py-2 rounded-pill">
+                          {item.hsn_code || '-'}
+                        </Badge>
                       </td>
                       <td className="text-center" style={{ width: '120px' }}>
                          {isEditing ? (
@@ -329,6 +359,14 @@ const ItemsListPage = () => {
                        </div>
                      )}
                      
+                    {!isEditing && (
+                      <div className="mt-2 text-muted small">
+                        HSN: <span className="fw-semibold text-secondary">
+{item.hsn_code || '-'}
+</span>
+                      </div>
+                    )}
+
                      {!isEditing && (
                        <div className="d-flex justify-content-end gap-2 mt-3 pt-2 border-top">
                           <Button variant="light" size="sm" className="flex-fill text-primary" onClick={() => handleViewItem(item)}>
@@ -356,4 +394,5 @@ const ItemsListPage = () => {
 };
 
 export default ItemsListPage;
+
 
