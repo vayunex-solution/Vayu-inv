@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Pagination } from 'react-bootstrap';
 import { Plus, Search, Edit, Trash2, Eye, Package, Check, X } from 'lucide-react';
-import { getItems, updateItem } from '../services/inventoryService';
+import { getItems, updateItem, createItem } from '../services/inventoryService';
 import { getCategories } from '../../categories/services/categoryService';
 import { getHsnList } from '../services/hsnService';
 import { useTabStore, useFyStore } from '../../../lib';
@@ -16,6 +16,20 @@ const ItemsListPage = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [hsnFilter, setHsnFilter] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSaving, setAddSaving] = useState(false);
+  const [addForm, setAddForm] = useState({
+    item_name: '',
+    item_code: '',
+    unit_price: '',
+    quantity: '',
+    unit: 'PCS',
+    category_id: '',
+    hsn_code: '',
+    tax_rate: '',
+    barcode: '',
+    status: 'active'
+  });
   
   // Double tap to edit state
   const [editingItemId, setEditingItemId] = useState(null);
@@ -94,6 +108,41 @@ const ItemsListPage = () => {
     setEditForm({});
   };
 
+  const handleAddChange = (field, value) => {
+    setAddForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddSubmit = async () => {
+    if (!addForm.item_name.trim() || !addForm.item_code.trim() || !addForm.unit_price || !addForm.quantity) {
+      alert('Item name, code, price, and quantity are required');
+      return;
+    }
+    setAddSaving(true);
+    try {
+      const res = await createItem(addForm);
+      if (res.success) {
+        setShowAddModal(false);
+        setAddForm({
+          item_name: '',
+          item_code: '',
+          unit_price: '',
+          quantity: '',
+          unit: 'PCS',
+          category_id: '',
+          hsn_code: '',
+          tax_rate: '',
+          barcode: '',
+          status: 'active'
+        });
+        fetchItems(pagination.page || 1);
+      } else {
+        alert(res.error?.message || 'Failed to add item');
+      }
+    } finally {
+      setAddSaving(false);
+    }
+  };
+
   const saveEdit = async (id) => {
     setSavingId(id);
     try {
@@ -122,7 +171,8 @@ const ItemsListPage = () => {
           <h4 className="fw-bold mb-1 gradient-text">Inventory Items</h4>
           <p className="text-muted small mb-0">{items.length} items found</p>
         </div>
-        <Button variant="primary" className="btn-glossy d-flex align-items-center gap-2 rounded-pill shadow-sm">
+        <Button variant="primary" className="btn-glossy d-flex align-items-center gap-2 rounded-pill shadow-sm"
+          onClick={() => setShowAddModal(true)}>
           <Plus size={18} /> Add New Item
         </Button>
       </div>
