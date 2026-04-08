@@ -6,7 +6,7 @@ import { apiClient } from '../../../lib';
 
 const BASE = '/api/v1/inventory/hsn';
 
-const TAX_SLABS = [0, 0.1, 0.25, 1, 1.5, 3, 5, 6, 7.5, 12, 18, 28];
+const MAX_GST_RATE = 100;
 
 const HsnMasterPage = () => {
   const [hsnList, setHsnList] = useState([]);
@@ -69,10 +69,19 @@ const HsnMasterPage = () => {
 
   useEffect(() => { fetchHsn(); }, [fetchHsn]);
 
-  // Auto-split GST rate into CGST/SGST/IGST
+  // Auto-split GST rate into CGST/SGST/IGST (read-only fields)
   const autoSplitGst = (form, gstRate) => {
-    const rate = parseFloat(gstRate) || 0;
-    return { ...form, gst_rate: rate, cgst: rate / 2, sgst: rate / 2, igst: rate };
+    const rateNum = Math.max(0, Math.min(MAX_GST_RATE, parseFloat(gstRate) || 0));
+    const half = rateNum / 2;
+    return { ...form, gst_rate: rateNum, cgst: half, sgst: half, igst: rateNum };
+  };
+
+  const handleGstChangeEdit = (value) => {
+    setEditForm(prev => autoSplitGst(prev, value));
+  };
+
+  const handleGstChangeAdd = (value) => {
+    setAddForm(prev => autoSplitGst(prev, value));
   };
 
   // ─── Inline Edit ───────────────────────────────────────
@@ -96,6 +105,7 @@ const HsnMasterPage = () => {
 
   const saveEdit = async (id) => {
     if (!editForm.hsn_code?.trim()) return showAlert('HSN code is required', 'danger');
+    if (editForm.gst_rate < 0 || editForm.gst_rate > MAX_GST_RATE) return showAlert(`GST rate must be between 0 and ${MAX_GST_RATE}`, 'danger');
     setSavingId(id);
     try {
       await apiClient.put(`${BASE}/${id}`, editForm);
@@ -135,6 +145,7 @@ const HsnMasterPage = () => {
 
   const handleAdd = async () => {
     if (!addForm.hsn_code?.trim()) return showAlert('HSN code is required', 'danger');
+    if (addForm.gst_rate < 0 || addForm.gst_rate > MAX_GST_RATE) return showAlert(`GST rate must be between 0 and ${MAX_GST_RATE}`, 'danger');
     setAddSaving(true);
     try {
       await apiClient.post(BASE, addForm);
@@ -266,20 +277,26 @@ const HsnMasterPage = () => {
                           <span className="text-muted small">{hsn.hsn_desc || '—'}</span>
                         )}
                       </td>
-                      <td className="text-center" style={{ width: 100 }}>
+                      <td className="text-center" style={{ width: 120 }}>
                         {isEditing ? (
-                          <Form.Select size="sm" value={editForm.gst_rate} onChange={e => setEditForm(p => autoSplitGst(p, e.target.value))}>
-                            {TAX_SLABS.map(t => <option key={t} value={t}>{t}%</option>)}
-                          </Form.Select>
+                          <Form.Control
+                            type="number"
+                            size="sm"
+                            min={0}
+                            max={MAX_GST_RATE}
+                            step="0.01"
+                            value={editForm.gst_rate}
+                            onChange={e => handleGstChangeEdit(e.target.value)}
+                          />
                         ) : (
                           <Badge className="border-0 rounded-pill px-3 py-2 fw-bold" style={{ backgroundColor: taxColors.bg, color: taxColors.text, fontSize: '0.75rem' }}>
                             <Percent size={10} className="me-1" />{hsn.gst_rate}%
                           </Badge>
                         )}
                       </td>
-                      <td className="text-center small text-muted">{hsn.cgst}%</td>
-                      <td className="text-center small text-muted">{hsn.sgst}%</td>
-                      <td className="text-center small text-muted">{hsn.igst}%</td>
+                      <td className="text-center small text-muted">{isEditing ? editForm.cgst : hsn.cgst}%</td>
+                      <td className="text-center small text-muted">{isEditing ? editForm.sgst : hsn.sgst}%</td>
+                      <td className="text-center small text-muted">{isEditing ? editForm.igst : hsn.igst}%</td>
                       <td className="text-center small text-muted">
                         {isEditing ? (
                           <Form.Control size="sm" type="date" value={editForm.wef_date} onChange={e => setEditForm(p => ({ ...p, wef_date: e.target.value }))} />
@@ -396,9 +413,16 @@ const HsnMasterPage = () => {
             <Col xs={12} sm={4}>
               <Form.Group>
                 <Form.Label className="fw-semibold small">GST Rate (%)</Form.Label>
-                <Form.Select value={addForm.gst_rate} onChange={e => setAddForm(p => autoSplitGst(p, e.target.value))}>
-                  {TAX_SLABS.map(t => <option key={t} value={t}>{t}%</option>)}
-                </Form.Select>
+                <Form.Control
+                  type="number"
+                  min={0}
+                  max={MAX_GST_RATE}
+                  step="0.01"
+                  value={addForm.gst_rate}
+                  onChange={e => handleGstChangeAdd(e.target.value)}
+                  placeholder="e.g. 18"
+                />
+                <Form.Text className="text-muted">Auto-fills CGST/SGST/IGST</Form.Text>
               </Form.Group>
             </Col>
             <Col xs={12} sm={4}>
@@ -425,19 +449,19 @@ const HsnMasterPage = () => {
             <Col xs={6} sm={3}>
               <Form.Group>
                 <Form.Label className="fw-semibold small">CGST (%)</Form.Label>
-                <Form.Control type="number" step="0.01" value={addForm.cgst} onChange={e => setAddForm(p => ({ ...p, cgst: parseFloat(e.target.value) || 0 }))} />
+                <Form.Control type="number" step="0.01" value={addForm.cgst} readOnly disabled />
               </Form.Group>
             </Col>
             <Col xs={6} sm={3}>
               <Form.Group>
                 <Form.Label className="fw-semibold small">SGST (%)</Form.Label>
-                <Form.Control type="number" step="0.01" value={addForm.sgst} onChange={e => setAddForm(p => ({ ...p, sgst: parseFloat(e.target.value) || 0 }))} />
+                <Form.Control type="number" step="0.01" value={addForm.sgst} readOnly disabled />
               </Form.Group>
             </Col>
             <Col xs={6} sm={3}>
               <Form.Group>
                 <Form.Label className="fw-semibold small">IGST (%)</Form.Label>
-                <Form.Control type="number" step="0.01" value={addForm.igst} onChange={e => setAddForm(p => ({ ...p, igst: parseFloat(e.target.value) || 0 }))} />
+                <Form.Control type="number" step="0.01" value={addForm.igst} readOnly disabled />
               </Form.Group>
             </Col>
             <Col xs={6} sm={3}>
