@@ -1,0 +1,110 @@
+{
+  "allResults": {
+    "resultsCount": 4,
+    "results": [
+      [
+        {
+          "Serial": 2,
+          "HeadName": "CUSTOMER",
+          "Prefix": "PARTY",
+          "StartValue": 1,
+          "StopValue": 9999,
+          "IncrementValue": 1,
+          "LastValue": 0,
+          "CreatedBy": null,
+          "CreatedOn": "2026-04-11T06:14:35.000Z",
+          "ModifyBy": null,
+          "ModifyOn": "2026-04-11T06:14:35.000Z"
+        },
+        {
+          "Serial": 1,
+          "HeadName": "ITEMCODE",
+          "Prefix": "ITEM",
+          "StartValue": 1,
+          "StopValue": 9999,
+          "IncrementValue": 1,
+          "LastValue": 0,
+          "CreatedBy": null,
+          "CreatedOn": "2026-04-11T06:11:58.000Z",
+          "ModifyBy": null,
+          "ModifyOn": "2026-04-11T06:11:58.000Z"
+        }
+      ],
+      [
+        {
+          "TotalRecords": 2
+        }
+      ],
+      [
+        {
+          "Key": "HeadName",
+          "Type": "string",
+          "Label": "Head Name",
+          "AllowedValues": null,
+          "Operator": "contains",
+          "DefaultValue": null
+        },
+        {
+          "Key": "Prefix",
+          "Type": "string",
+          "Label": "Prefix",
+          "AllowedValues": null,
+          "Operator": "contains",
+          "DefaultValue": null
+        },
+        {
+          "Key": "StartValue",
+          "Type": "number",
+          "Label": "Start Value",
+          "AllowedValues": null,
+          "Operator": "eq",
+          "DefaultValue": null
+        },
+        {
+          "Key": "StopValue",
+          "Type": "number",
+          "Label": "Stop Value",
+          "AllowedValues": null,
+          "Operator": "eq",
+          "DefaultValue": null
+        },
+        {
+          "Key": "IncrementValue",
+          "Type": "number",
+          "Label": "Increment",
+          "AllowedValues": null,
+          "Operator": "eq",
+          "DefaultValue": null
+        },
+        {
+          "Key": "LastValue",
+          "Type": "number",
+          "Label": "Last Value",
+          "AllowedValues": null,
+          "Operator": "eq",
+          "DefaultValue": null
+        }
+      ]
+    ]
+  },
+  "nameResults": {
+    "resultsCount": 2,
+    "results": [
+      [
+        {
+          "Serial": 2,
+          "HeadName": "CUSTOMER",
+          "Prefix": "PARTY",
+          "StartValue": 1,
+          "StopValue": 9999,
+          "IncrementValue": 1,
+          "LastValue": 0,
+          "CreatedBy": null,
+          "CreatedOn": "2026-04-11T06:14:35.000Z",
+          "ModifyBy": null,
+          "ModifyOn": "2026-04-11T06:14:35.000Z"
+        }
+      ]
+    ]
+  }
+}
