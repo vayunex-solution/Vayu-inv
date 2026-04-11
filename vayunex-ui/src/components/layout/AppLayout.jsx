@@ -17,7 +17,9 @@ import {
   DistrictMasterPage, 
   FyMasterPage,
   ItemCategoryPage,
-  HsnMasterPage
+  HsnMasterPage,
+  SequenceMasterPage,
+  SequenceTransMasterPage
 } from '../../modules/masters';
 import { Sparkles } from 'lucide-react';
 
@@ -51,6 +53,16 @@ const componentMap = {
   HSN_MASTER: HsnMasterPage,
   hsn: HsnMasterPage,
   HsnMaster: HsnMasterPage,
+
+  // Sequence
+  SEQUANCE: SequenceMasterPage,
+  sequance: SequenceMasterPage,
+  Sequence: SequenceMasterPage,
+
+  // Sequence Trans
+  SEQUANCETRANS: SequenceTransMasterPage,
+  sequancetrans: SequenceTransMasterPage,
+  SequenceTrans: SequenceTransMasterPage,
 
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">
