@@ -236,7 +236,15 @@ const swaggerDefinition = {
         },
         {
             name: 'Items',
-            description: 'Inventory item management'
+            description: 'Registry of items'
+        },
+        {
+            name: 'Items Master',
+            description: 'Advanced Items Master management'
+        },
+        {
+            name: 'Units Master',
+            description: 'Unit of Measurement management'
         },
         {
             name: 'Countries',
