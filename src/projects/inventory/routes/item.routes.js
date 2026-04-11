@@ -1,13 +1,11 @@
 /**
  * Item Routes
- * API routes for item management including HSN Code endpoints
- *
+ * API routes for item management
+ * 
  * @swagger
  * tags:
- *   - name: Items
- *     description: Inventory item management
- *   - name: HSN
- *     description: HSN code lookup and management
+ *   name: Items
+ *   description: Inventory item management
  */
 const express = require('express');
 const router = express.Router();
@@ -22,7 +20,7 @@ router.use(authenticate);
  * /api/v1/inventory/items:
  *   get:
  *     summary: Get all items
- *     description: Retrieve a paginated list of inventory items. Supports filtering by hsn_code.
+ *     description: Retrieve a paginated list of inventory items
  *     tags: [Items]
  *     security:
  *       - bearerAuth: []
@@ -53,13 +51,8 @@ router.use(authenticate);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [active, inactive, discontinued]
+ *           enum: [active, inactive]
  *         description: Filter by status
- *       - in: query
- *         name: hsn_code
- *         schema:
- *           type: string
- *         description: Filter by HSN code
  *     responses:
  *       200:
  *         description: Items retrieved successfully
@@ -107,7 +100,7 @@ router.get('/items/:id', itemController.getItemById);
  * /api/v1/inventory/items:
  *   post:
  *     summary: Create new item
- *     description: Create a new inventory item with optional HSN code and tax rate
+ *     description: Create a new inventory item
  *     tags: [Items]
  *     security:
  *       - bearerAuth: []
@@ -148,18 +141,6 @@ router.get('/items/:id', itemController.getItemById);
  *               reorder_level:
  *                 type: number
  *                 example: 10
- *               hsn_code:
- *                 type: string
- *                 example: "8471"
- *                 description: HSN code for GST classification
- *               tax_rate:
- *                 type: number
- *                 example: 18.00
- *                 description: GST tax rate percentage
- *               barcode:
- *                 type: string
- *                 example: "1234567890123"
- *                 description: Item barcode
  *     responses:
  *       201:
  *         description: Item created successfully
@@ -179,7 +160,7 @@ router.post('/items', itemController.createItem);
  * /api/v1/inventory/items/{id}:
  *   put:
  *     summary: Update item
- *     description: Update an existing inventory item including HSN code and tax rate
+ *     description: Update an existing inventory item
  *     tags: [Items]
  *     security:
  *       - bearerAuth: []
@@ -211,13 +192,7 @@ router.post('/items', itemController.createItem);
  *                 type: number
  *               status:
  *                 type: string
- *                 enum: [active, inactive, discontinued]
- *               hsn_code:
- *                 type: string
- *               tax_rate:
- *                 type: number
- *               barcode:
- *                 type: string
+ *                 enum: [active, inactive]
  *     responses:
  *       200:
  *         description: Item updated successfully
@@ -272,8 +247,5 @@ router.delete('/items/:id', itemController.deleteItem);
  *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get('/categories', itemController.getCategories);
-
-// HSN routes are now handled by hsn.controller.js (uses usp_gst_hsn_list procedure)
-// See: src/projects/inventory/controllers/hsn.controller.js
 
 module.exports = router;

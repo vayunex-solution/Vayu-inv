@@ -23,3 +23,6 @@ Thumbs.db
 
 # dist/
 build/
+
+# Vayunex Internal
+AGENTS_PROCESS_GUIDE.md

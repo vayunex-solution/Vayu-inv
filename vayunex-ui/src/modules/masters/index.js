@@ -11,3 +11,5 @@ export { default as ItemCategoryPage } from './pages/ItemCategoryPage';
 export { default as HsnMasterPage } from './pages/HsnMasterPage';
 export { default as SequenceMasterPage } from './pages/SequenceMasterPage';
 export { default as SequenceTransMasterPage } from './pages/SequenceTransMasterPage';
+export { default as UnitMasterPage } from './pages/UnitMasterPage';
+export { default as ItemMasterPage } from './pages/ItemMasterPage';
