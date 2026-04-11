@@ -113,8 +113,11 @@ const registerRoutes = () => {
     app.use('/api/v1/auth', authRoutes);
 
     // Inventory routes (protected)
-    const itemRoutes = require('./projects/inventory/routes/item.routes');
-    app.use('/api/v1/inventory', itemRoutes);
+    const itemRoutes = require('./projects/inventory/controllers/item.controller');
+    app.use('/api/v1/inventory/items', itemRoutes);
+
+    const unitRoutes = require('./projects/inventory/controllers/unit.controller');
+    app.use('/api/v1/inventory/units', unitRoutes);
 
     const countryRoutes = require('./projects/inventory/controllers/country.controller');
     app.use('/api/v1/inventory/countries', countryRoutes);
