@@ -1,7 +1,11 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\src",
+    "\\src\\projects",
+    "\\src\\projects\\inventory",
+    "\\src\\projects\\inventory\\controllers"
   ],
-  "SelectedNode": "\\D:\\projects\\Vayunex-Inventory-api",
+  "SelectedNode": "\\src\\projects\\inventory\\controllers\\hsn.controller.js",
   "PreviewInSolutionExplorer": false
 }
