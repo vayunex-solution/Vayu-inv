@@ -14,6 +14,10 @@ const ItemMasterPage = () => {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   
+  const [categories, setCategories] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [brands, setBrands] = useState([]);
+  
   const initialForm = {
     itemName: '', itemCode: '', itemDescription: '', hsnCode: '', 
     isTaxable: 1, unitOfMeasurement: 0, purchaseRate: '', salesRate: '', mrp: '', 
@@ -38,8 +42,24 @@ const ItemMasterPage = () => {
     }
   }, []);
 
+  const fetchDropdowns = async () => {
+    try {
+      const [catRes, unitRes, brandRes] = await Promise.all([
+        apiClient.get('/api/v1/inventory/item-categories/dropdown').catch(() => ({ data: [] })),
+        apiClient.get('/api/v1/inventory/units/dropdown').catch(() => ({ data: [] })),
+        apiClient.get('/api/v1/inventory/brands/dropdown').catch(() => ({ data: [] }))
+      ]);
+      setCategories(Array.isArray(catRes.data) ? catRes.data : (catRes || []));
+      setUnits(Array.isArray(unitRes.data) ? unitRes.data : (unitRes || []));
+      setBrands(Array.isArray(brandRes.data) ? brandRes.data : (brandRes || []));
+    } catch (err) {
+      console.error("Failed to load dropdowns", err);
+    }
+  };
+
   useEffect(() => {
     fetchList();
+    fetchDropdowns();
   }, [fetchList]);
 
   const handleOpenAdd = () => {
@@ -257,6 +277,37 @@ const ItemMasterPage = () => {
                     <option value="Services">Services</option>
                   </Form.Select>
                 </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Row className="g-3 mt-1 mb-2">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary mb-1">Category</Form.Label>
+                      <Form.Select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                        <option value={0}>Select Category</option>
+                        {categories.map(c => <option key={c.CategoryId || c.categoryId} value={c.CategoryId || c.categoryId}>{c.CategoryName || c.categoryName}</option>)}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary mb-1">Brand</Form.Label>
+                      <Form.Select value={form.brand} onChange={e => setForm({...form, brand: e.target.value})}>
+                        <option value={0}>Select Brand</option>
+                        {brands.map(b => <option key={b.BrandId || b.brandId} value={b.BrandId || b.brandId}>{b.BrandName || b.brandName}</option>)}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold text-secondary mb-1">Unit of Measurement</Form.Label>
+                      <Form.Select value={form.unitOfMeasurement} onChange={e => setForm({...form, unitOfMeasurement: e.target.value})}>
+                        <option value={0}>Select Unit</option>
+                        {units.map(u => <option key={u.UnitId || u.unitId || u.UnitID} value={u.UnitId || u.unitId || u.UnitID}>{u.UnitName || u.unitName || u.UnitCode || u.unitCode}</option>)}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
               </Col>
               <Col md={12}>
                 <Form.Group>

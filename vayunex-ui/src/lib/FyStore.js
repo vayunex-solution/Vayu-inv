@@ -16,13 +16,21 @@ const useFyStore = create((set, get) => ({
       const list = res?.data || res || [];
       set({ fys: list });
 
-      // Auto-select: prefer stored ID, else current FY flag, else first
-      const stored = localStorage.getItem(STORAGE_KEY);
+      // Auto-select: strictly prefer Current FY. Fallback to stored, then first item.
       const current = list.find(f => f.IsCurrentFy === 'Y' || f.ISCURRENTFY === 'Y' || f.is_current_fy === 'Y');
+      const stored = localStorage.getItem(STORAGE_KEY);
       const fallback = list[0];
-      const nextId = stored && list.find(f => String(f.FYID || f.FyId || f.fy_id) === stored)
-        ? stored
-        : (current ? String(current.FYID || current.FyId || current.fy_id) : (fallback ? String(fallback.FYID || fallback.FyId || fallback.fy_id) : ''));
+      
+      let nextId = current ? String(current.FYID || current.FyId || current.fy_id) : null;
+      
+      // If no current FY is defined, fallback to stored
+      if (!nextId && stored && list.find(f => String(f.FYID || f.FyId || f.fy_id) === stored)) {
+        nextId = stored;
+      }
+      // If still no ID, fallback to first item
+      if (!nextId && fallback) {
+        nextId = String(fallback.FYID || fallback.FyId || fallback.fy_id);
+      }
 
       if (nextId) {
         set({ selectedFyId: nextId });

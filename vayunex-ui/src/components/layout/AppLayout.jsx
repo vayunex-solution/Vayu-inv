@@ -74,6 +74,9 @@ const componentMap = {
   // Items
   ITEM_MASTER: ItemMasterPage,
   ItemMaster: ItemMasterPage,
+  ITEMS_MASTER: ItemMasterPage,
+  ItemsMaster: ItemMasterPage,
+  items_master: ItemMasterPage,
 
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">

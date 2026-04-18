@@ -2,8 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Row, Col, Card, Table, Badge, Button, Form, InputGroup, Spinner, Modal } from 'react-bootstrap';
 import { Plus, Search, Edit, Trash2, Check, X, Calendar, RefreshCw } from 'lucide-react';
-import { apiClient } from '../../../lib';
-
+import { apiClient, useFyStore } from '../../../lib';
 const FyMasterPage = () => {
   const [fys, setFys] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +10,7 @@ const FyMasterPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [savingId, setSavingId] = useState(null);
+  const loadGlobalFys = useFyStore(s => s.loadFys);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ fy_name: '', fy_st_date: '', fy_end_date: '', is_current_fy: 'N' });
   const [addSaving, setAddSaving] = useState(false);
@@ -61,6 +61,7 @@ const FyMasterPage = () => {
       ));
       await apiClient.put(`/api/v1/inventory/fy/${id}`, editForm);
       showAlert('Financial Year updated successfully');
+      loadGlobalFys(); // Force global dropdown refresh
     } catch (err) {
       fetchFys();
       showAlert(err.response?.data?.message || 'Update failed', 'danger');
@@ -77,6 +78,7 @@ const FyMasterPage = () => {
     try {
       await apiClient.delete(`/api/v1/inventory/fy/${id}`);
       showAlert('Financial Year deleted');
+      loadGlobalFys(); // Force global dropdown refresh
     } catch (err) {
       setFys(prev);
       showAlert(err.response?.data?.message || 'Delete failed', 'danger');
@@ -94,6 +96,7 @@ const FyMasterPage = () => {
       setAddForm({ fy_name: '', fy_st_date: '', fy_end_date: '', is_current_fy: 'N' });
       fetchFys();
       showAlert('Financial Year added successfully');
+      loadGlobalFys(); // Force global dropdown refresh
     } catch (err) {
       showAlert(err.response?.data?.message || 'Failed to add financial year', 'danger');
     } finally {
