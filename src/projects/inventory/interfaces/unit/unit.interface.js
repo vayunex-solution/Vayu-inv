@@ -7,9 +7,11 @@
 class UnitInterface {
     /**
      * Retrieve all units
+     * @param {number} start
+     * @param {number} end
      * @returns {Promise<Object>}
      */
-    getAll() { }
+    getAll(start, end) { }
 
     /**
      * Retrieve a unit by ID

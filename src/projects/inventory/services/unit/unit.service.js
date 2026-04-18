@@ -7,13 +7,13 @@ class UnitService extends UnitInterface {
      * Retrieve all units
      * Uses usp_unitsmaster_list with ActionType = 2
      */
-    async getAll() {
+    async getAll(start = 0, end = 100) {
         const result = await callProcedureMultiParam('usp_unitsmaster_list', [
             2, // ActionType: GetAll
             '', // UnitName: Ignored
             0, // UnitId: Ignored
-            0, // Start: Default
-            100 // End: Default
+            start, // Start
+            end // End
         ]);
 
         if (result && result.success && Array.isArray(result.data)) {
@@ -67,6 +67,7 @@ class UnitService extends UnitInterface {
         const result = await callProcedureMultiParam('usp_unitsmaster_list', [
             1, // ActionType: GetByName
             name,
+            0,
             0,
             0
         ]);
