@@ -14,7 +14,11 @@ const { authenticate } = require("../../../core/auth");
  */
 const getAll = async (req, res) => {
     try {
-        const result = await service.getAll();
+        const { p_Start, p_End } = req.query;
+        const result = await service.getAll(
+            parseInt(p_Start) || 0,
+            parseInt(p_End) || 100
+        );
         res.json(result);
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -103,13 +107,26 @@ router.use(authenticate);
  * @swagger
  * /api/v1/inventory/units:
  *   get:
- *     summary: Get all units
+ *     summary: Get all units (paginated)
  *     tags: [Units Master]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: p_Start
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Starting index
+ *       - in: query
+ *         name: p_End
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *         description: Number of records to return
  *     responses:
  *       200:
- *         description: List of units
+ *         description: List of units with metadata
  */
 router.get('/', getAll);
 
