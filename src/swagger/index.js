@@ -249,6 +249,14 @@ const swaggerDefinition = {
         {
             name: 'Countries',
             description: 'Country management'
+        },
+        {
+            name: 'Account Groups',
+            description: 'Account Group management'
+        },
+        {
+            name: 'Account Heads',
+            description: 'Account Head management'
         }
     ]
 };
