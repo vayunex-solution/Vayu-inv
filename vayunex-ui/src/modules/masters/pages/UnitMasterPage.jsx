@@ -23,7 +23,7 @@ const UnitMasterPage = () => {
   const fetchList = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get(BASE);
+      const res = await apiClient.get(`${BASE}?p_Start=0&p_End=1000`);
       // Backend sp usually returns uppercase fields if mapping isn't done at DTO
       setList(Array.isArray(res.data) ? res.data : []);
       setAlert(null);
