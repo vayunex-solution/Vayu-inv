@@ -6,7 +6,7 @@ import { apiClient } from '../../../lib';
 
 const normList = (data) => {
   return data.map(m => ({
-    MenuId: m.MenuId ?? m.id ?? m.menu_id ?? m.MenuID ?? 0,
+    MenuId: m.MenuId ?? m.id ?? m.Id ?? m.menu_id ?? m.MenuID ?? 0,
     MenuKey: m.MenuKey ?? m.menu_key ?? '',
     Title: m.Title ?? m.title ?? '',
     Icon: m.Icon ?? m.icon ?? '',
