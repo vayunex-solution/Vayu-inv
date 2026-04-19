@@ -90,6 +90,7 @@ const componentMap = {
   menus: MenuMasterPage,
 
   // Account Group
+  ACCOUNTS_GROUPS: AccountGroupMasterPage,
   ACCOUNT_GROUP_MASTER: AccountGroupMasterPage,
   AccountGroupMaster: AccountGroupMasterPage,
   accountgroupmaster: AccountGroupMasterPage,
@@ -98,6 +99,7 @@ const componentMap = {
   AccountGroup: AccountGroupMasterPage,
 
   // Account Head
+  ACCOUNT_HEADS: AccountHeadMasterPage,
   ACCOUNT_HEAD_MASTER: AccountHeadMasterPage,
   AccountHeadMaster: AccountHeadMasterPage,
   accountheadmaster: AccountHeadMasterPage,
