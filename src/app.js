@@ -152,6 +152,9 @@ const registerRoutes = () => {
     const sequenceTransRoutes = require('./projects/inventory/controllers/sequence-trans.controller');
     app.use('/api/v1/inventory/sequence-trans', sequenceTransRoutes);
 
+    const accountRoutes = require('./projects/inventory/controllers/account.controller');
+    app.use('/api/v1/inventory/accounts', accountRoutes);
+
     // Admin routes (protected)
     const menuRoutes = require('./projects/admin/controllers/menu.controller');
     app.use('/api/v1/admin/menus', menuRoutes);
