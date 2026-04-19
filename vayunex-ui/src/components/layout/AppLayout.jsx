@@ -22,7 +22,9 @@ import {
   SequenceTransMasterPage,
   UnitMasterPage,
   ItemMasterPage,
-  MenuMasterPage
+  MenuMasterPage,
+  AccountGroupMasterPage,
+  AccountHeadMasterPage
 } from '../../modules/masters';
 import { Sparkles } from 'lucide-react';
 
@@ -86,6 +88,22 @@ const componentMap = {
   MENU_MASTER: MenuMasterPage,
   MenuMaster: MenuMasterPage,
   menus: MenuMasterPage,
+
+  // Account Group
+  ACCOUNT_GROUP_MASTER: AccountGroupMasterPage,
+  AccountGroupMaster: AccountGroupMasterPage,
+  accountgroupmaster: AccountGroupMasterPage,
+  account_group_master: AccountGroupMasterPage,
+  accountgroup: AccountGroupMasterPage,
+  AccountGroup: AccountGroupMasterPage,
+
+  // Account Head
+  ACCOUNT_HEAD_MASTER: AccountHeadMasterPage,
+  AccountHeadMaster: AccountHeadMasterPage,
+  accountheadmaster: AccountHeadMasterPage,
+  account_head_master: AccountHeadMasterPage,
+  accounthead: AccountHeadMasterPage,
+  AccountHead: AccountHeadMasterPage,
 
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">

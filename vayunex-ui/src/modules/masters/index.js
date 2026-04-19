@@ -14,3 +14,5 @@ export { default as SequenceTransMasterPage } from './pages/SequenceTransMasterP
 export { default as UnitMasterPage } from './pages/UnitMasterPage';
 export { default as ItemMasterPage } from './pages/ItemMasterPage';
 export { default as MenuMasterPage } from './pages/MenuMasterPage';
+export { default as AccountGroupMasterPage } from './pages/AccountGroupMasterPage';
+export { default as AccountHeadMasterPage } from './pages/AccountHeadMasterPage';
