@@ -21,7 +21,8 @@ import {
   SequenceMasterPage,
   SequenceTransMasterPage,
   UnitMasterPage,
-  ItemMasterPage
+  ItemMasterPage,
+  MenuMasterPage
 } from '../../modules/masters';
 import { Sparkles } from 'lucide-react';
 
@@ -77,6 +78,14 @@ const componentMap = {
   ITEMS_MASTER: ItemMasterPage,
   ItemsMaster: ItemMasterPage,
   items_master: ItemMasterPage,
+
+  // Admin Menus
+  MENU: MenuMasterPage,
+  Menu: MenuMasterPage,
+  menu: MenuMasterPage,
+  MENU_MASTER: MenuMasterPage,
+  MenuMaster: MenuMasterPage,
+  menus: MenuMasterPage,
 
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">
