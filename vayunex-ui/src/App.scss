@@ -28,6 +28,35 @@ $enable-gradients: true;
 @import "bootstrap/scss/mixins";
 @import "bootstrap/scss/root";
 
+// ============================================
+// VAYUNEX DESIGN TOKENS (Light Mode defaults)
+// ============================================
+:root {
+  --vy-bg-page:        #f8fafc;
+  --vy-bg-sidebar:     #ffffff;
+  --vy-bg-card:        #ffffff;
+  --vy-bg-elevated:    #f1f5f9;
+  --vy-border:         #e2e8f0;
+  --vy-text-main:      #0f172a;
+  --vy-text-muted:     #64748b;
+  --vy-text-heading:   #1e293b;
+  --vy-shadow:         0 1px 3px rgba(0.0,0,0,0.08);
+  --vy-transition:     0.3s ease;
+}
+
+// Dark Mode Token Overrides
+[data-bs-theme="dark"] {
+  --vy-bg-page:        #0f172a;
+  --vy-bg-sidebar:     #1e293b;
+  --vy-bg-card:        #1e293b;
+  --vy-bg-elevated:    #334155;
+  --vy-border:         #334155;
+  --vy-text-main:      #f1f5f9;
+  --vy-text-muted:     #94a3b8;
+  --vy-text-heading:   #e2e8f0;
+  --vy-shadow:         0 1px 3px rgba(0,0,0,0.35);
+}
+
 // 4. Optional Bootstrap parts as needed
 @import "bootstrap/scss/utilities";
 @import "bootstrap/scss/reboot";
@@ -541,14 +570,14 @@ $enable-gradients: true;
 
 .sidebar {
   width: 280px;
-  background-color: #fff;
-  border-right: 1px solid #e2e8f0;
+  background-color: var(--vy-bg-sidebar);
+  border-right: 1px solid var(--vy-border);
   height: 100vh;
   position: fixed;
   top: 0;
   left: 0;
   z-index: 1000;
-  transition: all 0.3s ease;
+  transition: background-color var(--vy-transition), border-color var(--vy-transition), transform 0.3s ease;
 
   @include media-breakpoint-down(lg) {
     transform: translateX(-100%);
@@ -561,49 +590,53 @@ $enable-gradients: true;
 
 .main-content {
   margin-left: 280px;
-  transition: all 0.3s ease;
+  background-color: var(--vy-bg-page);
+  transition: background-color var(--vy-transition), margin 0.3s ease;
 
   @include media-breakpoint-down(lg) {
     margin-left: 0;
   }
 }
 
+// Main page area inside layout
+main.vy-main {
+  background-color: var(--vy-bg-page) !important;
+  transition: background-color var(--vy-transition);
+}
+
 .nav-link {
-  color: $secondary;
+  color: var(--vy-text-muted);
   border-radius: 0.5rem;
   margin-bottom: 0.25rem;
   padding: 0.75rem 1rem;
   font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease;
 
   &:hover {
-    background-color: rgba($primary, 0.05);
+    background-color: rgba($primary, 0.07);
     color: $primary;
   }
 
   &.active {
-    background-color: rgba($primary, 0.1);
+    background-color: rgba($primary, 0.12);
     color: $primary;
     font-weight: 600;
   }
 }
 
-// Dark Mode Overrides
-[data-bs-theme="dark"] {
-  body {
-    background-color: #0f172a;
-  }
+// glass-card utility — used in master pages
+.glass-card {
+  background: var(--vy-bg-card);
+  border: 1px solid var(--vy-border);
+  border-radius: 12px;
+  box-shadow: var(--vy-shadow);
+  transition: background-color var(--vy-transition), border-color var(--vy-transition);
+}
 
-  .sidebar {
-    background-color: #1e293b;
-    border-right-color: #334155;
-  }
-
-  .nav-link {
-    color: #94a3b8;
-
-    &:hover,
-    &.active {
-      color: $primary;
-    }
-  }
+// Sidebar bottom info card
+.sidebar-info-card {
+  background-color: var(--vy-bg-elevated);
+  border: 1px solid var(--vy-border);
+  border-radius: 12px;
+  transition: background-color var(--vy-transition);
 }

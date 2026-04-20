@@ -135,7 +135,7 @@ const AppLayout = () => {
 
         <TabBar />
 
-        <main className="flex-fill overflow-auto bg-light p-4">
+        <main className="flex-fill overflow-auto vy-main p-4">
           <div className="container-fluid p-0">
             <ActiveComponent {...(activeTab?.props || {})} />
           </div>

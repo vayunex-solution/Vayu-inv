@@ -132,8 +132,8 @@ const Sidebar = ({ show, onHide }) => {
           </Nav>
         </div>
 
-        <div className="p-3 border-top mt-auto">
-          <div className="bg-light p-3 rounded-3 border">
+        <div className="p-3 border-top mt-auto" style={{ borderColor: 'var(--vy-border)' }}>
+          <div className="sidebar-info-card p-3">
             <div className="d-flex gap-2">
               <div className="text-warning">
                 <Box size={20} />

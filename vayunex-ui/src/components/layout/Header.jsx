@@ -22,7 +22,7 @@ const Header = ({ onMenuToggle }) => {
   };
 
   return (
-    <Navbar bg={isDark ? 'dark' : 'white'} variant={isDark ? 'dark' : 'light'} className="border-bottom sticky-top py-3">
+    <Navbar className="border-bottom sticky-top py-3" style={{ backgroundColor: 'var(--vy-bg-sidebar)', borderColor: 'var(--vy-border)' }}>
       <Container fluid className="px-4">
         {/* Mobile Toggle */}
         <Button
