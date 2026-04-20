@@ -10,5 +10,19 @@ export default defineConfig({
     port: 5173,
     open: true,
     https: true
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler',
+        silenceDeprecations: [
+          'if-function', 
+          'global-builtin', 
+          'color-functions', 
+          'import', 
+          'legacy-js-api'
+        ]
+      }
+    }
   }
 })

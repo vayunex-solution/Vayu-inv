@@ -279,9 +279,26 @@ const AccountGroupMasterPage = () => {
             </Row>
 
             <Form.Group className="mb-3">
-              <Form.Label className="fw-medium">Parent Group ID</Form.Label>
-              <Form.Control type="number" min="0" value={addForm.ParentGroupId} onChange={e => setAddForm(f => ({ ...f, ParentGroupId: parseInt(e.target.value) || 0 }))} />
-              <Form.Text className="text-muted">0 for Root Group</Form.Text>
+              <Form.Label className="fw-medium">Parent Group</Form.Label>
+              <Form.Select 
+                value={addForm.ParentGroupId} 
+                onChange={(e) => {
+                  const parentId = parseInt(e.target.value) || 0;
+                  let newBelongsto = addForm.Belongsto;
+                  if (parentId !== 0) {
+                    const parentGroup = groups.find(g => g.GroupId === parentId);
+                    if (parentGroup && parentGroup.Belongsto) {
+                      newBelongsto = parentGroup.Belongsto;
+                    }
+                  }
+                  setAddForm(f => ({ ...f, ParentGroupId: parentId, Belongsto: newBelongsto }));
+                }}
+              >
+                <option value={0}>Root Group (0)</option>
+                {groups.map(g => (
+                  <option key={g.GroupId} value={g.GroupId}>{g.GroupName}</option>
+                ))}
+              </Form.Select>
             </Form.Group>
           </Form>
         </Modal.Body>

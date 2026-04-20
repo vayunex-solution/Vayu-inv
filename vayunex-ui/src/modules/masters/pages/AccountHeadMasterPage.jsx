@@ -41,8 +41,18 @@ const AccountHeadMasterPage = () => {
     setLoading(true);
     try {
       const res = await apiClient.get('/api/v1/inventory/accounts/heads');
-      const data = res.data || res || [];
+      let rawData = res.data || res || [];
       
+      // Remap lowercase keys to PascalCase to fix binding bugs with UI expecting PascalCase
+      const data = rawData.map(item => ({
+        ...item,
+        AccountId: item.accountid || item.AccountId,
+        AccountHead: item.accounthead || item.AccountHead,
+        GroupId: item.groupid || item.GroupId,
+        YearOpeningBalance: item.yearopeningbalance || item.YearOpeningBalance || 0,
+        BranchId: item.branchid || item.BranchId || 1
+      }));
+
       let filtered = data;
       if (search) {
         filtered = filtered.filter(h =>
