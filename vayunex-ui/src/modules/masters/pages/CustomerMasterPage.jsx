@@ -1,16 +1,16 @@
 // src/modules/masters/pages/CustomerMasterPage.jsx
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Row, Col, Card, Table, Badge, Button, Form,
-  InputGroup, Spinner, Modal, Nav, Tab, Accordion
+  InputGroup, Spinner, Modal, Nav, Tab
 } from 'react-bootstrap';
 import {
-  Plus, Search, Edit, Trash2, Check, X, Users, RefreshCw,
-  Building2, Phone, Mail, CreditCard, MapPin, ChevronDown, Landmark
+  Plus, Search, Edit, Trash2, Users, RefreshCw,
+  Building2, Phone, Mail, MapPin, ChevronDown, Landmark, X
 } from 'lucide-react';
 import { apiClient } from '../../../lib';
 
-// ─── Address template ────────────────────────────────────────────────────────
+// ─── Address template ─────────────────────────────────────────────────────────
 const makeAddress = (overrides = {}) => ({
   AddressType:   'Billing',
   AddressLine1:  '',
@@ -50,7 +50,7 @@ const EMPTY_CUSTOMER = {
   Addresses:       [makeAddress({ IsDefault: 1 })],
 };
 
-// ─── Normalize list response ─────────────────────────────────────────────────
+// ─── Normalize list response ──────────────────────────────────────────────────
 const norm = (res) => {
   const raw = Array.isArray(res)
     ? res
@@ -80,52 +80,46 @@ const CustomerTypeBadge = ({ type }) => (
 
 const ADDRESS_TYPE_OPTIONS = ['Billing', 'Shipping', 'Both', 'Registered', 'Other'];
 const CUSTOMER_TYPES       = ['B2B', 'B2C', 'Dealer', 'Wholesale', 'Retail'];
-
-// ─── Address type pill colors ─────────────────────────────────────────────────
-const addrTypeBg = { Billing: '#8b5cf6', Shipping: '#0ea5e9', Both: '#10b981', Registered: '#f59e0b', Other: '#6b7280' };
+const addrTypeBg           = { Billing: '#8b5cf6', Shipping: '#0ea5e9', Both: '#10b981', Registered: '#f59e0b', Other: '#6b7280' };
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Address Card — self-contained, each address manages its own geo-dropdowns
+//  Address Card — self-contained, manages its own geo-dropdowns
 // ─────────────────────────────────────────────────────────────────────────────
 const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault }) => {
+  const [countries, setCountries] = useState([]);
   const [states,    setStates]    = useState([]);
   const [districts, setDistricts] = useState([]);
   const [cities,    setCities]    = useState([]);
-  const [countries, setCountries] = useState([]);
-  const [open, setOpen] = useState(idx === 0);
+  const [open,      setOpen]      = useState(idx === 0);
 
   useEffect(() => {
-    apiClient.get('/api/v1/inventory/countries/dropdown').then(res => {
-      setCountries(res.data || res || []);
-    }).catch(() => {});
+    apiClient.get('/api/v1/inventory/countries/dropdown')
+      .then(res => setCountries(res.data || res || []))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!addr.CountryId) { setStates([]); setDistricts([]); setCities([]); return; }
-    apiClient.get(`/api/v1/inventory/states?country_id=${addr.CountryId}`).then(res => {
-      setStates(res.data || res || []);
-    }).catch(() => setStates([]));
+    apiClient.get(`/api/v1/inventory/states?country_id=${addr.CountryId}`)
+      .then(res => setStates(res.data || res || []))
+      .catch(() => setStates([]));
   }, [addr.CountryId]);
 
   useEffect(() => {
     if (!addr.StateId) { setDistricts([]); setCities([]); return; }
-    apiClient.get(`/api/v1/inventory/districts?state_id=${addr.StateId}`).then(res => {
-      setDistricts(res.data || res || []);
-    }).catch(() => setDistricts([]));
-    apiClient.get(`/api/v1/inventory/cities?state_id=${addr.StateId}`).then(res => {
-      setCities(res.data || res || []);
-    }).catch(() => setCities([]));
+    apiClient.get(`/api/v1/inventory/districts?state_id=${addr.StateId}`)
+      .then(res => setDistricts(res.data || res || []))
+      .catch(() => setDistricts([]));
+    apiClient.get(`/api/v1/inventory/cities?state_id=${addr.StateId}`)
+      .then(res => setCities(res.data || res || []))
+      .catch(() => setCities([]));
   }, [addr.StateId]);
 
-  const f = (field, val) => onChange(idx, field, val);
-
+  const f   = (field, val) => onChange(idx, field, val);
   const pill = addrTypeBg[addr.AddressType] || '#6b7280';
 
   return (
-    <div
-      className="border rounded-3 mb-3 overflow-hidden"
-      style={{ borderColor: `${pill}40 !important`, boxShadow: open ? `0 0 0 2px ${pill}30` : 'none', transition: 'box-shadow .2s' }}
-    >
+    <div className="border rounded-3 mb-3 overflow-hidden" style={{ boxShadow: open ? `0 0 0 2px ${pill}30` : 'none', transition: 'box-shadow .2s' }}>
       {/* Card Header */}
       <div
         className="d-flex align-items-center justify-content-between px-3 py-2"
@@ -165,7 +159,7 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
       {/* Card Body */}
       {open && (
         <div className="p-3">
-          {/* — Type + Default + Active — */}
+          {/* Type + Pincode + Toggles */}
           <Row className="g-2 mb-3 align-items-end">
             <Col xs={6} md={4}>
               <Form.Label className="fw-medium small mb-1">Address Type</Form.Label>
@@ -178,8 +172,7 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
               <Form.Control size="sm" placeholder="135001" maxLength={6} value={addr.Pincode} onChange={e => f('Pincode', e.target.value)} />
             </Col>
             <Col xs={6} md={2} className="d-flex align-items-end">
-              <Form.Check
-                type="switch" label="Default" size="sm"
+              <Form.Check type="switch" label="Default" size="sm"
                 checked={addr.IsDefault === 1}
                 disabled={isOnlyDefault && addr.IsDefault === 1}
                 onChange={e => f('IsDefault', e.target.checked ? 1 : 0)}
@@ -187,8 +180,7 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
               />
             </Col>
             <Col xs={6} md={3} className="d-flex align-items-end">
-              <Form.Check
-                type="switch" label="Active" size="sm"
+              <Form.Check type="switch" label="Active" size="sm"
                 checked={addr.IsActive === 1}
                 onChange={e => f('IsActive', e.target.checked ? 1 : 0)}
                 className="mt-2"
@@ -196,7 +188,7 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
             </Col>
           </Row>
 
-          {/* — Address Lines — */}
+          {/* Address Lines */}
           <Row className="g-2 mb-3">
             <Col xs={12} md={6}>
               <Form.Label className="fw-medium small mb-1">Address Line 1</Form.Label>
@@ -208,7 +200,7 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
             </Col>
           </Row>
 
-          {/* — Geo Cascade — */}
+          {/* Geo Cascade */}
           <Row className="g-2 mb-3">
             <Col xs={6} md={3}>
               <Form.Label className="fw-medium small mb-1">Country</Form.Label>
@@ -240,7 +232,7 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
             </Col>
           </Row>
 
-          {/* — GSTIN / PAN for this address — */}
+          {/* GSTIN / PAN for address */}
           <Row className="g-2 mb-3">
             <Col xs={6} md={4}>
               <Form.Label className="fw-medium small mb-1">GSTIN</Form.Label>
@@ -252,7 +244,7 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
             </Col>
           </Row>
 
-          {/* Divider — Contact */}
+          {/* Contact Section */}
           <div className="d-flex align-items-center gap-2 mb-2 mt-1">
             <Phone size={13} className="text-muted" />
             <span className="text-muted small fw-semibold">Contact at this Address</span>
@@ -281,7 +273,7 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
             </Col>
           </Row>
 
-          {/* Divider — Bank */}
+          {/* Bank Section */}
           <div className="d-flex align-items-center gap-2 mb-2 mt-1">
             <Landmark size={13} className="text-muted" />
             <span className="text-muted small fw-semibold">Bank Details</span>
@@ -312,24 +304,282 @@ const AddressCard = ({ addr, idx, totalCount, onChange, onRemove, isOnlyDefault 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  CustomerFormModal — shared for both Add and Edit
+// ─────────────────────────────────────────────────────────────────────────────
+const CustomerFormModal = ({ show, onHide, mode, initialData, onSuccess, showAlert }) => {
+  const isEdit = mode === 'edit';
+
+  const [form,    setForm]    = useState(() => JSON.parse(JSON.stringify(EMPTY_CUSTOMER)));
+  const [saving,  setSaving]  = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [tab,     setTab]     = useState('basic');
+
+  // When modal opens: reset or load data
+  useEffect(() => {
+    if (!show) return;
+    setTab('basic');
+    if (isEdit && initialData?.id) {
+      setLoading(true);
+      apiClient.get(`/api/v1/inventory/customers/${initialData.id}`)
+        .then(res => {
+          const d = res?.data ?? res;
+          const rawAddresses = Array.isArray(d.addresses) && d.addresses.length > 0
+            ? d.addresses.map(a => makeAddress({
+                AddressType:   a.AddressType   || 'Billing',
+                AddressLine1:  a.AddressLine1  || '',
+                AddressLine2:  a.AddressLine2  || '',
+                CountryId:     a.CountryId     || '',
+                StateId:       a.StateId       || '',
+                DistrictId:    a.DistrictId    || '',
+                CityId:        a.CityId        || '',
+                Pincode:       a.Pincode        || '',
+                GSTIN:         a.GSTIN          || '',
+                PAN:           a.PAN            || '',
+                ContactPerson: a.ContactPerson  || '',
+                MobileNo:      a.MobileNo       || '',
+                WhatsAppNo:    a.WhatsAppNo     || '',
+                RMN:           a.RMN            || '',
+                Email:         a.Email          || '',
+                BankName:      a.BankName       || '',
+                AccountNumber: a.AccountNumber  || '',
+                IFSCCode:      a.IFSCCode       || '',
+                BranchName:    a.BranchName     || '',
+                IsDefault:     a.IsDefault      ?? 0,
+                IsActive:      a.IsActive       ?? 1,
+                AddressId:     a.AddressId      || undefined,
+              }))
+            : [makeAddress({ IsDefault: 1 })];
+
+          setForm({
+            CustomerName:    d.CustomerName    || '',
+            LegalName:       d.LegalName       || '',
+            GSTIN:           d.GSTIN           || '',
+            PAN:             d.PAN             || '',
+            IsGSTRegistered: d.IsGSTRegistered ?? 0,
+            MobileNo:        d.MobileNo        || '',
+            Email:           d.Email           || '',
+            CustomerType:    d.CustomerType    || 'B2B',
+            IsActive:        d.IsActive        ?? 1,
+            created_by:      1,
+            Addresses:       rawAddresses,
+          });
+        })
+        .catch(() => showAlert('Failed to load customer details', 'danger'))
+        .finally(() => setLoading(false));
+    } else {
+      setForm(JSON.parse(JSON.stringify(EMPTY_CUSTOMER)));
+    }
+  }, [show, isEdit, initialData]);
+
+  const addNewAddress = () =>
+    setForm(f => ({ ...f, Addresses: [...f.Addresses, makeAddress()] }));
+
+  const removeAddress = (idx) =>
+    setForm(f => {
+      if (f.Addresses.length <= 1) return f;
+      const updated = f.Addresses.filter((_, i) => i !== idx);
+      if (!updated.some(a => a.IsDefault === 1)) updated[0].IsDefault = 1;
+      return { ...f, Addresses: updated };
+    });
+
+  const onAddressChange = (idx, field, val) =>
+    setForm(f => {
+      let addresses = f.Addresses.map((a, i) => i === idx ? { ...a, [field]: val } : a);
+      if (field === 'IsDefault' && val === 1)
+        addresses = addresses.map((a, i) => ({ ...a, IsDefault: i === idx ? 1 : 0 }));
+      return { ...f, Addresses: addresses };
+    });
+
+  const handleSubmit = async () => {
+    if (!form.CustomerName.trim() || !form.PAN.trim()) {
+      showAlert('Customer Name and PAN are required', 'danger');
+      setTab('basic');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (isEdit) {
+        await apiClient.put(`/api/v1/inventory/customers/${initialData.id}`, { ...form, updated_by: 1 });
+        showAlert('Customer updated successfully');
+      } else {
+        await apiClient.post('/api/v1/inventory/customers', form);
+        showAlert('Customer added successfully');
+      }
+      onHide();
+      onSuccess();
+    } catch (err) {
+      showAlert(err.response?.data?.message || `Failed to ${isEdit ? 'update' : 'add'} customer`, 'danger');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addrCount      = form.Addresses.length;
+  const hasOnlyDefault = form.Addresses.filter(a => a.IsDefault === 1).length <= 1;
+
+  return (
+    <Modal show={show} onHide={onHide} centered size="xl" scrollable>
+      <Modal.Header closeButton className="border-0 pb-0">
+        <Modal.Title className="fw-bold d-flex align-items-center gap-2">
+          <Users size={20} style={{ color: '#8b5cf6' }} />
+          {isEdit ? 'Edit Customer' : 'Add New Customer'}
+          {isEdit && initialData?.code && (
+            <span className="text-muted small fw-normal ms-1">— {initialData.code}</span>
+          )}
+        </Modal.Title>
+      </Modal.Header>
+
+      <Modal.Body className="pt-2">
+        {loading ? (
+          <div className="d-flex align-items-center justify-content-center py-5">
+            <Spinner animation="border" style={{ color: '#8b5cf6' }} />
+            <span className="ms-3 text-muted">Loading customer details...</span>
+          </div>
+        ) : (
+          <Tab.Container activeKey={tab} onSelect={k => setTab(k)}>
+            <Nav variant="tabs" className="mb-3 border-bottom">
+              <Nav.Item>
+                <Nav.Link eventKey="basic" className="d-flex align-items-center gap-1">
+                  <Building2 size={15} /> Basic Info
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="addresses" className="d-flex align-items-center gap-1">
+                  <MapPin size={15} /> Addresses
+                  <Badge pill bg="secondary" className="ms-1" style={{ fontSize: '0.65rem' }}>{addrCount}</Badge>
+                </Nav.Link>
+              </Nav.Item>
+            </Nav>
+
+            <Tab.Content>
+              {/* ── Basic Info ── */}
+              <Tab.Pane eventKey="basic">
+                <Row className="g-3">
+                  <Col xs={12} md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-medium small">Customer Name <span className="text-danger">*</span></Form.Label>
+                      <Form.Control placeholder="e.g. ABC Traders" value={form.CustomerName} onChange={e => setForm(f => ({ ...f, CustomerName: e.target.value }))} />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Form.Group>
+                      <Form.Label className="fw-medium small">Legal Name</Form.Label>
+                      <Form.Control placeholder="e.g. ABC Traders Pvt Ltd" value={form.LegalName} onChange={e => setForm(f => ({ ...f, LegalName: e.target.value }))} />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Form.Group>
+                      <Form.Label className="fw-medium small">PAN <span className="text-danger">*</span></Form.Label>
+                      <Form.Control placeholder="e.g. ABCDE1234F" maxLength={10} value={form.PAN} onChange={e => setForm(f => ({ ...f, PAN: e.target.value.toUpperCase() }))} />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Form.Group>
+                      <Form.Label className="fw-medium small">GSTIN</Form.Label>
+                      <Form.Control placeholder="e.g. 27ABCDE1234F1Z5" maxLength={15} value={form.GSTIN} onChange={e => setForm(f => ({ ...f, GSTIN: e.target.value.toUpperCase() }))} />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Form.Group>
+                      <Form.Label className="fw-medium small">Customer Type</Form.Label>
+                      <Form.Select value={form.CustomerType} onChange={e => setForm(f => ({ ...f, CustomerType: e.target.value }))}>
+                        {CUSTOMER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} md={4}>
+                    <Form.Group>
+                      <Form.Label className="fw-medium small">Mobile</Form.Label>
+                      <Form.Control placeholder="9XXXXXXXXX" maxLength={15} value={form.MobileNo} onChange={e => setForm(f => ({ ...f, MobileNo: e.target.value }))} />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={12} md={8}>
+                    <Form.Group>
+                      <Form.Label className="fw-medium small">Email</Form.Label>
+                      <Form.Control type="email" placeholder="email@example.com" value={form.Email} onChange={e => setForm(f => ({ ...f, Email: e.target.value }))} />
+                    </Form.Group>
+                  </Col>
+                  <Col xs={6} md={3}>
+                    <Form.Check type="switch" label="GST Registered"
+                      checked={form.IsGSTRegistered === 1}
+                      onChange={e => setForm(f => ({ ...f, IsGSTRegistered: e.target.checked ? 1 : 0 }))}
+                      className="mt-4 pt-2"
+                    />
+                  </Col>
+                  <Col xs={6} md={3}>
+                    <Form.Check type="switch" label="Active"
+                      checked={form.IsActive === 1}
+                      onChange={e => setForm(f => ({ ...f, IsActive: e.target.checked ? 1 : 0 }))}
+                      className="mt-4 pt-2"
+                    />
+                  </Col>
+                </Row>
+              </Tab.Pane>
+
+              {/* ── Addresses ── */}
+              <Tab.Pane eventKey="addresses">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <span className="text-muted small fw-semibold">
+                    {addrCount} address{addrCount !== 1 ? 'es' : ''} configured
+                  </span>
+                  <Button
+                    size="sm"
+                    style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', border: 'none' }}
+                    className="d-flex align-items-center gap-1 rounded-pill text-white px-3"
+                    onClick={addNewAddress}
+                  >
+                    <Plus size={14} /> Add Address
+                  </Button>
+                </div>
+
+                {form.Addresses.map((addr, idx) => (
+                  <AddressCard
+                    key={idx}
+                    addr={addr}
+                    idx={idx}
+                    totalCount={addrCount}
+                    onChange={onAddressChange}
+                    onRemove={removeAddress}
+                    isOnlyDefault={hasOnlyDefault}
+                  />
+                ))}
+              </Tab.Pane>
+            </Tab.Content>
+          </Tab.Container>
+        )}
+      </Modal.Body>
+
+      <Modal.Footer className="border-0 pt-0">
+        <Button variant="light" className="rounded-pill px-4" onClick={onHide}>Cancel</Button>
+        <Button
+          style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', border: 'none' }}
+          className="rounded-pill px-4 text-white"
+          onClick={handleSubmit}
+          disabled={saving || loading}
+        >
+          {saving
+            ? <><Spinner size="sm" animation="border" className="me-2" />{isEdit ? 'Updating...' : 'Saving...'}</>
+            : isEdit ? 'Update Customer' : 'Add Customer'
+          }
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  Main Page
 // ─────────────────────────────────────────────────────────────────────────────
 const CustomerMasterPage = () => {
-  const [customers,   setCustomers]   = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [search,      setSearch]      = useState('');
-  const [filterType,  setFilterType]  = useState('');
+  const [customers,  setCustomers]  = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [search,     setSearch]     = useState('');
+  const [filterType, setFilterType] = useState('');
 
-  // Edit state (basic fields only in inline edit; full edit via modal later)
-  const [editingId, setEditingId] = useState(null);
-  const [editForm,  setEditForm]  = useState({});
-  const [savingId,  setSavingId]  = useState(null);
-
-  // Add modal
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm,      setAddForm]      = useState(() => JSON.parse(JSON.stringify(EMPTY_CUSTOMER)));
-  const [addSaving,    setAddSaving]    = useState(false);
-  const [addTab,       setAddTab]       = useState('basic');
+  // Modal state — shared for add & edit
+  const [modalMode,    setModalMode]    = useState('add');   // 'add' | 'edit'
+  const [showModal,    setShowModal]    = useState(false);
+  const [editTarget,   setEditTarget]   = useState(null);    // { id, code } for edit
 
   const [alert, setAlert] = useState(null);
 
@@ -338,7 +588,7 @@ const CustomerMasterPage = () => {
     setTimeout(() => setAlert(null), 3500);
   };
 
-  // ── Fetch customers ──────────────────────────────────────────────────────
+  // ── Fetch customers ─────────────────────────────────────────────────────
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
@@ -356,25 +606,21 @@ const CustomerMasterPage = () => {
 
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
-  // ── Inline edit ──────────────────────────────────────────────────────────
-  const handleDoubleClick = (c) => {
-    setEditingId(c.id);
-    setEditForm({ CustomerName: c.name, LegalName: c.legalName, GSTIN: c.gstin, PAN: c.pan, MobileNo: c.mobile, Email: c.email, CustomerType: c.type, IsActive: c.isActive });
-  };
-  const cancelEdit = () => { setEditingId(null); setEditForm({}); };
-
-  const saveEdit = async (id) => {
-    setSavingId(id);
-    try {
-      await apiClient.put(`/api/v1/inventory/customers/${id}`, { ...editForm, updated_by: 1 });
-      showAlert('Customer updated successfully');
-      fetchCustomers();
-    } catch (err) {
-      showAlert(err.response?.data?.message || 'Update failed', 'danger');
-    } finally { setSavingId(null); setEditingId(null); }
+  // ── Open Add Modal ──────────────────────────────────────────────────────
+  const openAdd = () => {
+    setModalMode('add');
+    setEditTarget(null);
+    setShowModal(true);
   };
 
-  // ── Delete ───────────────────────────────────────────────────────────────
+  // ── Open Edit Modal ─────────────────────────────────────────────────────
+  const openEdit = (c) => {
+    setModalMode('edit');
+    setEditTarget({ id: c.id, code: c.code });
+    setShowModal(true);
+  };
+
+  // ── Delete ──────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this customer?')) return;
     const prev = [...customers];
@@ -387,59 +633,6 @@ const CustomerMasterPage = () => {
       showAlert(err.response?.data?.message || 'Delete failed', 'danger');
     }
   };
-
-  // ── Add modal helpers ────────────────────────────────────────────────────
-  const resetAddModal = () => {
-    setAddForm(JSON.parse(JSON.stringify(EMPTY_CUSTOMER)));
-    setAddTab('basic');
-  };
-
-  const addNewAddress = () => {
-    setAddForm(f => ({ ...f, Addresses: [...f.Addresses, makeAddress()] }));
-  };
-
-  const removeAddress = (idx) => {
-    setAddForm(f => {
-      if (f.Addresses.length <= 1) return f;
-      const updated = f.Addresses.filter((_, i) => i !== idx);
-      // ensure at least one default
-      if (!updated.some(a => a.IsDefault === 1)) updated[0].IsDefault = 1;
-      return { ...f, Addresses: updated };
-    });
-  };
-
-  const onAddressChange = (idx, field, val) => {
-    setAddForm(f => {
-      let addresses = f.Addresses.map((a, i) => i === idx ? { ...a, [field]: val } : a);
-      // If IsDefault toggled ON, turn off others
-      if (field === 'IsDefault' && val === 1) {
-        addresses = addresses.map((a, i) => ({ ...a, IsDefault: i === idx ? 1 : 0 }));
-      }
-      return { ...f, Addresses: addresses };
-    });
-  };
-
-  const handleAdd = async () => {
-    if (!addForm.CustomerName.trim() || !addForm.PAN.trim()) {
-      showAlert('Customer Name and PAN are required', 'danger');
-      setAddTab('basic');
-      return;
-    }
-    setAddSaving(true);
-    try {
-      await apiClient.post('/api/v1/inventory/customers', addForm);
-      setShowAddModal(false);
-      resetAddModal();
-      fetchCustomers();
-      showAlert('Customer added successfully');
-    } catch (err) {
-      showAlert(err.response?.data?.message || 'Failed to add customer', 'danger');
-    } finally { setAddSaving(false); }
-  };
-
-  // Count of addresses for display
-  const addrCount = addForm.Addresses.length;
-  const hasOnlyOneDefault = addForm.Addresses.filter(a => a.IsDefault === 1).length <= 1;
 
   return (
     <div className="container-fluid p-0">
@@ -467,7 +660,7 @@ const CustomerMasterPage = () => {
           <Button
             style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', border: 'none' }}
             className="d-flex align-items-center gap-2 rounded-pill shadow-sm text-white"
-            onClick={() => { resetAddModal(); setShowAddModal(true); }}
+            onClick={openAdd}
           >
             <Plus size={18} /> Add Customer
           </Button>
@@ -505,7 +698,7 @@ const CustomerMasterPage = () => {
         </Card.Body>
       </Card>
 
-      {/* Table Card */}
+      {/* Table */}
       <Card className="border-0 shadow-sm overflow-hidden">
         {loading ? (
           <div className="d-flex align-items-center justify-content-center p-5">
@@ -532,115 +725,77 @@ const CustomerMasterPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {customers.map((c, idx) => {
-                  const editing = editingId === c.id;
-                  return (
-                    <tr
-                      key={c.id}
-                      onDoubleClick={() => !editing && handleDoubleClick(c)}
-                      style={{ cursor: editing ? 'default' : 'pointer' }}
-                      className={editing ? 'bg-warning bg-opacity-10' : ''}
-                      title={!editing ? 'Double-click to edit' : ''}
-                    >
-                      <td className="text-muted small">{idx + 1}</td>
+                {customers.map((c, idx) => (
+                  <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => openEdit(c)}>
+                    <td className="text-muted small">{idx + 1}</td>
 
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <div
-                            className="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold small"
-                            style={{ width: 34, height: 34, background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', flexShrink: 0 }}
-                          >
-                            {(c.name?.[0] || 'C').toUpperCase()}
-                          </div>
-                          <div>
-                            {editing
-                              ? <Form.Control size="sm" value={editForm.CustomerName} onChange={e => setEditForm(f => ({ ...f, CustomerName: e.target.value }))} autoFocus style={{ minWidth: 160 }} />
-                              : <span className="fw-semibold d-block">{c.name}</span>
-                            }
-                            <small className="text-muted">{c.code}</small>
-                          </div>
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        <div
+                          className="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold small"
+                          style={{ width: 34, height: 34, background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', flexShrink: 0 }}
+                        >
+                          {(c.name?.[0] || 'C').toUpperCase()}
                         </div>
-                      </td>
+                        <div>
+                          <span className="fw-semibold d-block">{c.name}</span>
+                          <small className="text-muted">{c.code}</small>
+                        </div>
+                      </div>
+                    </td>
 
-                      <td>
-                        {editing ? (
-                          <div className="d-flex flex-column gap-1">
-                            <Form.Control size="sm" placeholder="GSTIN" value={editForm.GSTIN} onChange={e => setEditForm(f => ({ ...f, GSTIN: e.target.value }))} style={{ width: 150 }} />
-                            <Form.Control size="sm" placeholder="PAN" value={editForm.PAN} onChange={e => setEditForm(f => ({ ...f, PAN: e.target.value }))} style={{ width: 150 }} />
-                          </div>
-                        ) : (
-                          <div>
-                            {c.gstin && <code className="d-block bg-secondary bg-opacity-10 px-2 py-0 rounded small text-secondary mb-1">{c.gstin}</code>}
-                            {c.pan  && <code className="d-block bg-secondary bg-opacity-10 px-2 py-0 rounded small text-secondary">{c.pan}</code>}
-                            {!c.gstin && !c.pan && <span className="text-muted small">—</span>}
-                          </div>
-                        )}
-                      </td>
+                    <td>
+                      {c.gstin && <code className="d-block bg-secondary bg-opacity-10 px-2 py-0 rounded small text-secondary mb-1">{c.gstin}</code>}
+                      {c.pan   && <code className="d-block bg-secondary bg-opacity-10 px-2 py-0 rounded small text-secondary">{c.pan}</code>}
+                      {!c.gstin && !c.pan && <span className="text-muted small">—</span>}
+                    </td>
 
-                      <td>
-                        {editing ? (
-                          <div className="d-flex flex-column gap-1">
-                            <Form.Control size="sm" placeholder="Mobile" value={editForm.MobileNo} onChange={e => setEditForm(f => ({ ...f, MobileNo: e.target.value }))} style={{ width: 140 }} />
-                            <Form.Control size="sm" placeholder="Email" value={editForm.Email} onChange={e => setEditForm(f => ({ ...f, Email: e.target.value }))} style={{ width: 180 }} />
-                          </div>
-                        ) : (
-                          <div>
-                            {c.mobile && <div className="d-flex align-items-center gap-1 small"><Phone size={12} className="text-muted" /> {c.mobile}</div>}
-                            {c.email  && <div className="d-flex align-items-center gap-1 small text-muted"><Mail size={12} /> {c.email}</div>}
-                          </div>
-                        )}
-                      </td>
+                    <td>
+                      {c.mobile && <div className="d-flex align-items-center gap-1 small"><Phone size={12} className="text-muted" /> {c.mobile}</div>}
+                      {c.email  && <div className="d-flex align-items-center gap-1 small text-muted"><Mail size={12} /> {c.email}</div>}
+                    </td>
 
-                      <td className="text-center">
-                        {editing
-                          ? <Form.Select size="sm" style={{ width: 110 }} value={editForm.CustomerType} onChange={e => setEditForm(f => ({ ...f, CustomerType: e.target.value }))}>
-                              {CUSTOMER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                            </Form.Select>
-                          : <CustomerTypeBadge type={c.type} />
-                        }
-                      </td>
+                    <td className="text-center"><CustomerTypeBadge type={c.type} /></td>
 
-                      <td className="text-center">
-                        {editing
-                          ? <Form.Check type="switch" checked={editForm.IsActive === 1} onChange={e => setEditForm(f => ({ ...f, IsActive: e.target.checked ? 1 : 0 }))} label={editForm.IsActive ? 'Active' : 'Inactive'} />
-                          : <Badge bg={c.isActive ? 'success' : 'secondary'} className="fw-normal rounded-pill px-3">{c.isActive ? 'Active' : 'Inactive'}</Badge>
-                        }
-                      </td>
+                    <td className="text-center">
+                      <Badge bg={c.isActive ? 'success' : 'secondary'} className="fw-normal rounded-pill px-3">
+                        {c.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </td>
 
-                      <td className="text-end">
-                        {editing ? (
-                          <div className="d-flex justify-content-end gap-1">
-                            <Button size="sm" variant="success" onClick={() => saveEdit(c.id)} disabled={savingId === c.id} className="rounded-circle p-1" style={{ width: 28, height: 28 }}>
-                              {savingId === c.id ? <Spinner size="sm" animation="border" /> : <Check size={14} />}
-                            </Button>
-                            <Button size="sm" variant="danger" onClick={cancelEdit} className="rounded-circle p-1" style={{ width: 28, height: 28 }}>
-                              <X size={14} />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="d-flex justify-content-end gap-1">
-                            <Button size="sm" variant="light" className="rounded-circle p-1" style={{ width: 28, height: 28 }} onClick={() => handleDoubleClick(c)}>
-                              <Edit size={14} className="text-muted" />
-                            </Button>
-                            <Button size="sm" variant="light" className="rounded-circle p-1" style={{ width: 28, height: 28 }} onClick={() => handleDelete(c.id)}>
-                              <Trash2 size={14} className="text-danger" />
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                    <td className="text-end" onClick={e => e.stopPropagation()}>
+                      <div className="d-flex justify-content-end gap-1">
+                        <Button
+                          size="sm" variant="light" className="rounded-circle p-1"
+                          style={{ width: 28, height: 28 }}
+                          title="Edit Customer"
+                          onClick={() => openEdit(c)}
+                        >
+                          <Edit size={14} className="text-muted" />
+                        </Button>
+                        <Button
+                          size="sm" variant="light" className="rounded-circle p-1"
+                          style={{ width: 28, height: 28 }}
+                          title="Delete Customer"
+                          onClick={() => handleDelete(c.id)}
+                        >
+                          <Trash2 size={14} className="text-danger" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </Table>
 
             {/* Mobile Cards */}
             <div className="d-block d-md-none">
               {customers.map(c => (
-                <div key={c.id} className="p-3 border-bottom" onDoubleClick={() => handleDoubleClick(c)}>
+                <div key={c.id} className="p-3 border-bottom" onClick={() => openEdit(c)} style={{ cursor: 'pointer' }}>
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <div className="d-flex align-items-center gap-2">
-                      <div className="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold small" style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', flexShrink: 0 }}>
+                      <div className="d-flex align-items-center justify-content-center rounded-circle text-white fw-bold small"
+                        style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', flexShrink: 0 }}>
                         {(c.name?.[0] || 'C').toUpperCase()}
                       </div>
                       <div>
@@ -653,9 +808,13 @@ const CustomerMasterPage = () => {
                   <div className="small text-muted mb-1">Type: <CustomerTypeBadge type={c.type} /></div>
                   {c.mobile && <div className="small text-muted mb-1"><Phone size={12} className="me-1" />{c.mobile}</div>}
                   {c.gstin  && <div className="small text-muted mb-1">GSTIN: <code>{c.gstin}</code></div>}
-                  <div className="d-flex gap-2 mt-2">
-                    <Button size="sm" variant="light" className="flex-fill" onClick={() => handleDoubleClick(c)}><Edit size={14} className="me-1" />Edit</Button>
-                    <Button size="sm" variant="light" className="flex-fill text-danger" onClick={() => handleDelete(c.id)}><Trash2 size={14} className="me-1" />Delete</Button>
+                  <div className="d-flex gap-2 mt-2" onClick={e => e.stopPropagation()}>
+                    <Button size="sm" variant="light" className="flex-fill" onClick={() => openEdit(c)}>
+                      <Edit size={14} className="me-1" />Edit
+                    </Button>
+                    <Button size="sm" variant="light" className="flex-fill text-danger" onClick={() => handleDelete(c.id)}>
+                      <Trash2 size={14} className="me-1" />Delete
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -663,143 +822,16 @@ const CustomerMasterPage = () => {
           </div>
         )}
       </Card>
-      <div className="text-center mt-3"><small className="text-muted">✨ Double-click any row to quick edit</small></div>
 
-      {/* ── Add Customer Modal ── */}
-      <Modal show={showAddModal} onHide={() => { setShowAddModal(false); resetAddModal(); }} centered size="xl" scrollable>
-        <Modal.Header closeButton className="border-0 pb-0">
-          <Modal.Title className="fw-bold d-flex align-items-center gap-2">
-            <Users size={20} style={{ color: '#8b5cf6' }} /> Add New Customer
-          </Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body className="pt-2">
-          <Tab.Container activeKey={addTab} onSelect={k => setAddTab(k)}>
-            <Nav variant="tabs" className="mb-3 border-bottom">
-              <Nav.Item>
-                <Nav.Link eventKey="basic" className="d-flex align-items-center gap-1">
-                  <Building2 size={15} /> Basic Info
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="addresses" className="d-flex align-items-center gap-1">
-                  <MapPin size={15} /> Addresses
-                  <Badge pill bg="secondary" className="ms-1" style={{ fontSize: '0.65rem' }}>{addrCount}</Badge>
-                </Nav.Link>
-              </Nav.Item>
-            </Nav>
-
-            <Tab.Content>
-              {/* ── Basic Info ── */}
-              <Tab.Pane eventKey="basic">
-                <Row className="g-3">
-                  <Col xs={12} md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-medium small">Customer Name <span className="text-danger">*</span></Form.Label>
-                      <Form.Control placeholder="e.g. ABC Traders" value={addForm.CustomerName} onChange={e => setAddForm(f => ({ ...f, CustomerName: e.target.value }))} />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={12} md={6}>
-                    <Form.Group>
-                      <Form.Label className="fw-medium small">Legal Name</Form.Label>
-                      <Form.Control placeholder="e.g. ABC Traders Pvt Ltd" value={addForm.LegalName} onChange={e => setAddForm(f => ({ ...f, LegalName: e.target.value }))} />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={12} md={4}>
-                    <Form.Group>
-                      <Form.Label className="fw-medium small">PAN <span className="text-danger">*</span></Form.Label>
-                      <Form.Control placeholder="e.g. ABCDE1234F" maxLength={10} value={addForm.PAN} onChange={e => setAddForm(f => ({ ...f, PAN: e.target.value.toUpperCase() }))} />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={12} md={4}>
-                    <Form.Group>
-                      <Form.Label className="fw-medium small">GSTIN</Form.Label>
-                      <Form.Control placeholder="e.g. 27ABCDE1234F1Z5" maxLength={15} value={addForm.GSTIN} onChange={e => setAddForm(f => ({ ...f, GSTIN: e.target.value.toUpperCase() }))} />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={12} md={4}>
-                    <Form.Group>
-                      <Form.Label className="fw-medium small">Customer Type</Form.Label>
-                      <Form.Select value={addForm.CustomerType} onChange={e => setAddForm(f => ({ ...f, CustomerType: e.target.value }))}>
-                        {CUSTOMER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col xs={12} md={4}>
-                    <Form.Group>
-                      <Form.Label className="fw-medium small">Mobile</Form.Label>
-                      <Form.Control placeholder="9XXXXXXXXX" maxLength={15} value={addForm.MobileNo} onChange={e => setAddForm(f => ({ ...f, MobileNo: e.target.value }))} />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={12} md={8}>
-                    <Form.Group>
-                      <Form.Label className="fw-medium small">Email</Form.Label>
-                      <Form.Control type="email" placeholder="email@example.com" value={addForm.Email} onChange={e => setAddForm(f => ({ ...f, Email: e.target.value }))} />
-                    </Form.Group>
-                  </Col>
-                  <Col xs={6} md={3}>
-                    <Form.Check
-                      type="switch" label="GST Registered"
-                      checked={addForm.IsGSTRegistered === 1}
-                      onChange={e => setAddForm(f => ({ ...f, IsGSTRegistered: e.target.checked ? 1 : 0 }))}
-                      className="mt-4 pt-2"
-                    />
-                  </Col>
-                  <Col xs={6} md={3}>
-                    <Form.Check
-                      type="switch" label="Active"
-                      checked={addForm.IsActive === 1}
-                      onChange={e => setAddForm(f => ({ ...f, IsActive: e.target.checked ? 1 : 0 }))}
-                      className="mt-4 pt-2"
-                    />
-                  </Col>
-                </Row>
-              </Tab.Pane>
-
-              {/* ── Addresses ── */}
-              <Tab.Pane eventKey="addresses">
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <span className="text-muted small fw-semibold">
-                    {addrCount} address{addrCount !== 1 ? 'es' : ''} configured
-                  </span>
-                  <Button
-                    size="sm"
-                    style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', border: 'none' }}
-                    className="d-flex align-items-center gap-1 rounded-pill text-white px-3"
-                    onClick={addNewAddress}
-                  >
-                    <Plus size={14} /> Add Address
-                  </Button>
-                </div>
-
-                {addForm.Addresses.map((addr, idx) => (
-                  <AddressCard
-                    key={idx}
-                    addr={addr}
-                    idx={idx}
-                    totalCount={addrCount}
-                    onChange={onAddressChange}
-                    onRemove={removeAddress}
-                    isOnlyDefault={hasOnlyOneDefault}
-                  />
-                ))}
-              </Tab.Pane>
-            </Tab.Content>
-          </Tab.Container>
-        </Modal.Body>
-
-        <Modal.Footer className="border-0 pt-0">
-          <Button variant="light" className="rounded-pill px-4" onClick={() => { setShowAddModal(false); resetAddModal(); }}>Cancel</Button>
-          <Button
-            style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)', border: 'none' }}
-            className="rounded-pill px-4 text-white"
-            onClick={handleAdd}
-            disabled={addSaving}
-          >
-            {addSaving ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : 'Add Customer'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {/* Shared Add / Edit Modal */}
+      <CustomerFormModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        mode={modalMode}
+        initialData={editTarget}
+        onSuccess={fetchCustomers}
+        showAlert={showAlert}
+      />
     </div>
   );
 };
