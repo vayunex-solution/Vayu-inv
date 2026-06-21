@@ -24,7 +24,8 @@ import {
   ItemMasterPage,
   MenuMasterPage,
   AccountGroupMasterPage,
-  AccountHeadMasterPage
+  AccountHeadMasterPage,
+  CustomerMasterPage
 } from '../../modules/masters';
 import { Sparkles } from 'lucide-react';
 
@@ -106,6 +107,13 @@ const componentMap = {
   account_head_master: AccountHeadMasterPage,
   accounthead: AccountHeadMasterPage,
   AccountHead: AccountHeadMasterPage,
+
+  // Customer Master
+  CUSTOMER_MASTER: CustomerMasterPage,
+  customer_master: CustomerMasterPage,
+  CustomerMaster: CustomerMasterPage,
+  CUSTOMER: CustomerMasterPage,
+  customers: CustomerMasterPage,
 
   empty: () => (
     <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted p-5">

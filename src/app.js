@@ -152,6 +152,9 @@ const registerRoutes = () => {
     const sequenceTransRoutes = require('./projects/inventory/controllers/sequence-trans.controller');
     app.use('/api/v1/inventory/sequence-trans', sequenceTransRoutes);
 
+    const customerRoutes = require('./projects/inventory/controllers/customer.controller');
+    app.use('/api/v1/inventory/customers', customerRoutes);
+
     const accountRoutes = require('./projects/inventory/controllers/account.controller');
     app.use('/api/v1/inventory/accounts', accountRoutes);
 
